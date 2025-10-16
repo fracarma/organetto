@@ -14,6 +14,9 @@ export function activate(context: vscode.ExtensionContext) {
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "organetto" is now active!');
 
+	// Store reference to the webview panel
+	let currentPanel: vscode.WebviewPanel | undefined = undefined;
+
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
@@ -80,6 +83,12 @@ export function activate(context: vscode.ExtensionContext) {
 	}
 
 	const openNewTabDisposable = vscode.commands.registerCommand('organetto.openNewTab', async () => {
+		// If panel already exists, just reveal it
+		if (currentPanel) {
+			currentPanel.reveal(vscode.ViewColumn.One);
+			return;
+		}
+
 		// Create a webview panel to display HTML content
 		const panel = vscode.window.createWebviewPanel(
 			'organettoView', // Identifies the type of the webview
@@ -89,6 +98,18 @@ export function activate(context: vscode.ExtensionContext) {
 				enableScripts: true, // Enable JavaScript in the webview
 				retainContextWhenHidden: true // Keep the webview content when hidden
 			}
+		);
+
+		// Store the panel reference
+		currentPanel = panel;
+
+		// Reset when the panel is closed
+		panel.onDidDispose(
+			() => {
+				currentPanel = undefined;
+			},
+			null,
+			context.subscriptions
 		);
 
 		// Show loading state initially
