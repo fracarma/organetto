@@ -417,12 +417,6 @@ export function activate(context: vscode.ExtensionContext) {
             background-color: rgba(255, 165, 0, 0.2);
             color: #ff9800;
         }
-        .info-bar {
-            background-color: var(--vscode-editor-inactiveSelectionBackground);
-            padding: 12px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-        }
         .org-alias {
             cursor: pointer;
             color: var(--vscode-textLink-foreground);
@@ -592,11 +586,8 @@ export function activate(context: vscode.ExtensionContext) {
 </head>
 <body>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1 style="margin: 0;">🌩️ Salesforce Orgs</h1>
+        <h1 style="margin: 0;">🪗 ORGanetto</h1>
         <button class="refresh-button" onclick="refreshOrgs()">🔄 Refresh</button>
-    </div>
-    <div class="info-bar">
-        <strong>Total Orgs:</strong> ${orgs.length}
     </div>
     ${orgsHtml}
     <script>
@@ -711,13 +702,6 @@ export function activate(context: vscode.ExtensionContext) {
                         const alias = row.getAttribute('data-alias');
                         if (alias === message.alias.toLowerCase()) {
                             row.remove();
-                            
-                            // Update total count
-                            const remainingRows = document.querySelectorAll('.org-row').length;
-                            const countElement = document.querySelector('.info-bar strong:first-child + *');
-                            if (countElement) {
-                                countElement.textContent = remainingRows;
-                            }
                         }
                     });
                     break;
