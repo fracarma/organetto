@@ -51,11 +51,30 @@ export function activate(context: vscode.ExtensionContext) {
 
 			// Parse the JSON output
 			const result = JSON.parse(stdout);
-			const orgs = result.result || [];
+			console.log('Raw result from sf org list:', JSON.stringify(result, null, 2));
+			
+			// Handle different possible structures
+			let orgs: any[] = [];
+			if (result.result) {
+				// Check if result.result is an object with nonScratchOrgs or scratchOrgs
+				if (result.result.nonScratchOrgs) {
+					orgs = [...result.result.nonScratchOrgs];
+				}
+				if (result.result.scratchOrgs) {
+					orgs = [...orgs, ...result.result.scratchOrgs];
+				}
+				// If result.result is already an array
+				if (Array.isArray(result.result)) {
+					orgs = result.result;
+				}
+			}
+
+			console.log('Parsed orgs:', orgs);
 
 			// Update the webview with org data
 			panel.webview.html = getWebviewContent(orgs);
 		} catch (error) {
+			console.error('Error fetching orgs:', error);
 			vscode.window.showErrorMessage(`Failed to fetch Salesforce orgs: ${error}`);
 			panel.webview.html = getWebviewContent([], `Error: ${error}`);
 		}
@@ -71,26 +90,90 @@ export function activate(context: vscode.ExtensionContext) {
 				<thead>
 					<tr>
 						<th>Alias</th>
-						<th>Username</th>
-						<th>Org ID</th>
-						<th>Instance URL</th>
 						<th>Status</th>
-						<th>Type</th>
 					</tr>
 				</thead>
 				<tbody>
-					${orgs.map(org => `
+					${orgs.map((org, index) => `
 						<tr>
-							<td><strong>${org.alias || '-'}</strong></td>
-							<td>${org.username || '-'}</td>
-							<td><code>${org.orgId || '-'}</code></td>
-							<td><a href="${org.instanceUrl || '#'}">${org.instanceUrl || '-'}</a></td>
+							<td>
+								<strong class="org-alias" data-org-index="${index}">
+									${org.alias || org.username || '-'}
+								</strong>
+							</td>
 							<td><span class="badge ${org.connectedStatus || ''}">${org.connectedStatus || '-'}</span></td>
-							<td>${org.isDevHub ? '🔧 Dev Hub' : org.isSandbox ? '🧪 Sandbox' : '🏢 Production'}</td>
 						</tr>
 					`).join('')}
 				</tbody>
 			</table>
+			<div id="popover" class="popover" style="display: none;">
+				<div class="popover-content">
+					<div class="popover-header">
+						<strong id="popover-alias"></strong>
+						<button class="popover-close" onclick="closePopover()">✕</button>
+					</div>
+					<div class="popover-body">
+						<div class="popover-item">
+							<span class="popover-label">Username:</span>
+							<span id="popover-username"></span>
+						</div>
+						<div class="popover-item">
+							<span class="popover-label">Org ID:</span>
+							<code id="popover-orgid"></code>
+						</div>
+						<div class="popover-item">
+							<span class="popover-label">Instance URL:</span>
+							<a id="popover-url" href="#" target="_blank"></a>
+						</div>
+						<div class="popover-item">
+							<span class="popover-label">Type:</span>
+							<span id="popover-type"></span>
+						</div>
+					</div>
+				</div>
+			</div>
+			<script>
+				const orgsData = ${JSON.stringify(orgs)};
+				
+				function closePopover() {
+					document.getElementById('popover').style.display = 'none';
+				}
+				
+				function showPopover(org, element) {
+					const popover = document.getElementById('popover');
+					const rect = element.getBoundingClientRect();
+					
+					// Set popover content
+					document.getElementById('popover-alias').textContent = org.alias || org.username || '-';
+					document.getElementById('popover-username').textContent = org.username || '-';
+					document.getElementById('popover-orgid').textContent = org.orgId || '-';
+					document.getElementById('popover-url').textContent = org.instanceUrl || '-';
+					document.getElementById('popover-url').href = org.instanceUrl || '#';
+					document.getElementById('popover-type').textContent = org.isDevHub ? '🔧 Dev Hub' : org.isSandbox ? '🧪 Sandbox' : '🏢 Production';
+					
+					// Position and show popover
+					popover.style.display = 'block';
+					popover.style.top = rect.bottom + 10 + 'px';
+					popover.style.left = rect.left + 'px';
+				}
+				
+				// Add click handlers to aliases
+				document.querySelectorAll('.org-alias').forEach(alias => {
+					alias.addEventListener('click', function(e) {
+						const index = parseInt(this.getAttribute('data-org-index'));
+						const org = orgsData[index];
+						showPopover(org, this);
+						e.stopPropagation();
+					});
+				});
+				
+				// Close popover when clicking outside
+				document.addEventListener('click', function(e) {
+					if (!e.target.closest('.popover') && !e.target.closest('.org-alias')) {
+						closePopover();
+					}
+				});
+			</script>
 			`;
 
 		return `<!DOCTYPE html>
@@ -167,6 +250,77 @@ export function activate(context: vscode.ExtensionContext) {
             padding: 12px;
             border-radius: 4px;
             margin-bottom: 20px;
+        }
+        .org-alias {
+            cursor: pointer;
+            color: var(--vscode-textLink-foreground);
+            text-decoration: underline;
+            text-decoration-style: dotted;
+        }
+        .org-alias:hover {
+            opacity: 0.8;
+        }
+        .popover {
+            position: fixed;
+            z-index: 1000;
+            background-color: var(--vscode-editorHoverWidget-background);
+            border: 1px solid var(--vscode-editorHoverWidget-border);
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            min-width: 300px;
+            max-width: 500px;
+        }
+        .popover-content {
+            padding: 0;
+        }
+        .popover-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--vscode-widget-border);
+            background-color: var(--vscode-editor-inactiveSelectionBackground);
+            border-radius: 6px 6px 0 0;
+        }
+        .popover-close {
+            background: none;
+            border: none;
+            color: var(--vscode-foreground);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 3px;
+        }
+        .popover-close:hover {
+            background-color: var(--vscode-toolbar-hoverBackground);
+        }
+        .popover-body {
+            padding: 16px;
+        }
+        .popover-item {
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .popover-item:last-child {
+            margin-bottom: 0;
+        }
+        .popover-label {
+            font-weight: 600;
+            font-size: 0.9em;
+            color: var(--vscode-descriptionForeground);
+        }
+        .popover-item code {
+            word-break: break-all;
+        }
+        .popover-item a {
+            word-break: break-all;
         }
     </style>
 </head>
