@@ -92,17 +92,18 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 
 		// Show loading state initially
-		panel.webview.html = getWebviewContent([], false);
+		const lastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
+		panel.webview.html = getWebviewContent([], lastOpenedTimes, false);
 
 		try {
 			// Fetch orgs (from cache or fresh)
 			const orgs = await fetchAndCacheOrgs(false);
 
 			// Update the webview with org data
-			panel.webview.html = getWebviewContent(orgs, false);
+			panel.webview.html = getWebviewContent(orgs, lastOpenedTimes, false);
 		} catch (error) {
 			vscode.window.showErrorMessage(`Failed to fetch Salesforce orgs: ${error}`);
-			panel.webview.html = getWebviewContent([], false, `Error: ${error}`);
+			panel.webview.html = getWebviewContent([], lastOpenedTimes, false, `Error: ${error}`);
 		}
 
 		// Handle messages from the webview (e.g., refresh button, open org)
@@ -111,13 +112,15 @@ export function activate(context: vscode.ExtensionContext) {
 				switch (message.command) {
 					case 'refresh':
 						try {
-							panel.webview.html = getWebviewContent([], true);
+							const refreshLastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
+							panel.webview.html = getWebviewContent([], refreshLastOpenedTimes, true);
 							const orgs = await fetchAndCacheOrgs(true);
-							panel.webview.html = getWebviewContent(orgs, false);
+							panel.webview.html = getWebviewContent(orgs, refreshLastOpenedTimes, false);
 							vscode.window.showInformationMessage('Org list refreshed!');
 						} catch (error) {
 							vscode.window.showErrorMessage(`Failed to refresh orgs: ${error}`);
-							panel.webview.html = getWebviewContent([], false, `Error: ${error}`);
+							const errorLastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
+							panel.webview.html = getWebviewContent([], errorLastOpenedTimes, false, `Error: ${error}`);
 						}
 						break;
 					case 'openOrg':
@@ -125,7 +128,17 @@ export function activate(context: vscode.ExtensionContext) {
 							const alias = message.alias;
 							vscode.window.showInformationMessage(`Opening org: ${alias}...`);
 							await execPromise(`sf org open -o ${alias}`);
+							
+							// Track the last opened time
+							const lastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
+							lastOpenedTimes[alias] = new Date().toISOString();
+							await context.globalState.update('orgLastOpenedTimes', lastOpenedTimes);
+							
 							vscode.window.showInformationMessage(`Org ${alias} opened successfully!`);
+							
+							// Refresh the view to show updated last opened time
+							const orgs = await fetchAndCacheOrgs(false);
+							panel.webview.html = getWebviewContent(orgs, lastOpenedTimes, false);
 						} catch (error) {
 							vscode.window.showErrorMessage(`Failed to open org: ${error}`);
 						}
@@ -137,34 +150,68 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 	});
 
-	function getWebviewContent(orgs: any[], isRefreshing: boolean, error?: string) {
+	function getWebviewContent(orgs: any[], lastOpenedTimes: Record<string, string>, isRefreshing: boolean, error?: string) {
 		const orgsHtml = orgs.length === 0 && !error
 			? '<p style="text-align: center; padding: 40px; color: var(--vscode-descriptionForeground);">' + (isRefreshing ? 'Refreshing orgs...' : 'Loading orgs...') + '</p>'
 			: error
 			? `<div style="padding: 20px; color: var(--vscode-errorForeground); background-color: var(--vscode-inputValidation-errorBackground); border: 1px solid var(--vscode-inputValidation-errorBorder); border-radius: 4px;">${error}</div>`
 			: `
+			<div class="filter-bar">
+				<label class="filter-checkbox">
+					<input type="checkbox" id="hideDisconnected" checked onchange="applyFilter()">
+					<span>Hide disconnected orgs</span>
+				</label>
+			</div>
 			<table>
 				<thead>
 					<tr>
 						<th>Alias</th>
 						<th>Status</th>
+						<th>Last Used</th>
 						<th>Actions</th>
 					</tr>
 				</thead>
-				<tbody>
-					${orgs.map((org, index) => `
-						<tr>
+				<tbody id="orgs-table-body">
+					${orgs.map((org, index) => {
+						// Format last opened date from tracked data
+						const orgKey = org.alias || org.username;
+						let lastUsedText = 'Never';
+						if (lastOpenedTimes[orgKey]) {
+							const lastUsedDate = new Date(lastOpenedTimes[orgKey]);
+							const now = new Date();
+							const diffMs = now.getTime() - lastUsedDate.getTime();
+							const diffMins = Math.floor(diffMs / 60000);
+							const diffHours = Math.floor(diffMs / 3600000);
+							const diffDays = Math.floor(diffMs / 86400000);
+							
+							if (diffMins < 1) {
+								lastUsedText = 'Just now';
+							} else if (diffMins < 60) {
+								lastUsedText = diffMins + ' min ago';
+							} else if (diffHours < 24) {
+								lastUsedText = diffHours + ' hr ago';
+							} else if (diffDays < 7) {
+								lastUsedText = diffDays + ' day' + (diffDays > 1 ? 's' : '') + ' ago';
+							} else {
+								lastUsedText = lastUsedDate.toLocaleDateString();
+							}
+						}
+						
+						return `
+						<tr class="org-row" data-connected="${org.connectedStatus === 'Connected'}">
 							<td>
 								<strong class="org-alias" data-org-index="${index}">
 									${org.alias || org.username || '-'}
 								</strong>
 							</td>
 							<td><span class="badge ${org.connectedStatus || ''}">${org.connectedStatus || '-'}</span></td>
+							<td>${lastUsedText}</td>
 							<td>
 								<button class="action-button" onclick="openOrg('${org.alias || org.username}')">🚀 Open</button>
 							</td>
 						</tr>
-					`).join('')}
+						`;
+					}).join('')}
 				</tbody>
 			</table>
 			<div id="popover" class="popover" style="display: none;">
@@ -417,6 +464,27 @@ export function activate(context: vscode.ExtensionContext) {
         .action-button:active {
             transform: scale(0.98);
         }
+        .filter-bar {
+            background-color: var(--vscode-editor-inactiveSelectionBackground);
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .filter-checkbox input[type="checkbox"] {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+        .filter-checkbox span {
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -438,6 +506,23 @@ export function activate(context: vscode.ExtensionContext) {
         function openOrg(alias) {
             vscode.postMessage({ command: 'openOrg', alias: alias });
         }
+        
+        function applyFilter() {
+            const hideDisconnected = document.getElementById('hideDisconnected').checked;
+            const rows = document.querySelectorAll('.org-row');
+            
+            rows.forEach(row => {
+                const isConnected = row.getAttribute('data-connected') === 'true';
+                if (hideDisconnected && !isConnected) {
+                    row.style.display = 'none';
+                } else {
+                    row.style.display = '';
+                }
+            });
+        }
+        
+        // Apply filter on page load
+        window.addEventListener('DOMContentLoaded', applyFilter);
     </script>
 </body>
 </html>`;
