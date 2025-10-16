@@ -729,6 +729,30 @@ export function activate(context: vscode.ExtensionContext) {
             }
         });
         
+        // Focus search box when typing anywhere
+        document.addEventListener('keydown', (e) => {
+            const searchInput = document.getElementById('searchInput');
+            const activeElement = document.activeElement;
+            
+            // Don't interfere if already focused on an input or if it's a special key
+            if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+                return;
+            }
+            
+            // Ignore special keys like Ctrl, Alt, Cmd, Tab, Escape, etc.
+            if (e.ctrlKey || e.metaKey || e.altKey || 
+                e.key === 'Tab' || e.key === 'Escape' || e.key === 'Enter' ||
+                e.key === 'ArrowUp' || e.key === 'ArrowDown' || 
+                e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                return;
+            }
+            
+            // Focus search input for regular character keys
+            if (e.key.length === 1 && searchInput) {
+                searchInput.focus();
+            }
+        });
+        
         // Apply filter on page load
         window.addEventListener('DOMContentLoaded', applyFilter);
     </script>
