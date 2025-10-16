@@ -157,10 +157,15 @@ export function activate(context: vscode.ExtensionContext) {
 			? `<div style="padding: 20px; color: var(--vscode-errorForeground); background-color: var(--vscode-inputValidation-errorBackground); border: 1px solid var(--vscode-inputValidation-errorBorder); border-radius: 4px;">${error}</div>`
 			: `
 			<div class="filter-bar">
-				<label class="filter-checkbox">
-					<input type="checkbox" id="hideDisconnected" checked onchange="applyFilter()">
-					<span>Hide disconnected orgs</span>
-				</label>
+				<div class="filter-controls">
+					<div class="search-box">
+						<input type="text" id="searchInput" placeholder="Search orgs..." oninput="applyFilter()">
+					</div>
+					<label class="filter-checkbox">
+						<input type="checkbox" id="hideDisconnected" checked onchange="applyFilter()">
+						<span>Hide disconnected orgs</span>
+					</label>
+				</div>
 			</div>
 			<table>
 				<thead>
@@ -491,12 +496,39 @@ export function activate(context: vscode.ExtensionContext) {
             border-radius: 4px;
             margin-bottom: 16px;
         }
+        .filter-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 6px 12px;
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+        }
+        .search-box input:focus {
+            border-color: var(--vscode-focusBorder);
+        }
+        .search-box input::placeholder {
+            color: var(--vscode-input-placeholderForeground);
+        }
         .filter-checkbox {
             display: flex;
             align-items: center;
             gap: 8px;
             cursor: pointer;
             user-select: none;
+            white-space: nowrap;
         }
         .filter-checkbox input[type="checkbox"] {
             cursor: pointer;
@@ -531,11 +563,20 @@ export function activate(context: vscode.ExtensionContext) {
         
         function applyFilter() {
             const hideDisconnected = document.getElementById('hideDisconnected').checked;
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
             const rows = document.querySelectorAll('.org-row');
             
             rows.forEach(row => {
                 const isConnected = row.getAttribute('data-connected') === 'true';
-                if (hideDisconnected && !isConnected) {
+                const alias = row.getAttribute('data-alias');
+                
+                // Check if should hide based on connection status
+                const hideByConnection = hideDisconnected && !isConnected;
+                
+                // Check if should hide based on search text
+                const hideBySearch = searchText && !alias.includes(searchText);
+                
+                if (hideByConnection || hideBySearch) {
                     row.style.display = 'none';
                 } else {
                     row.style.display = '';
