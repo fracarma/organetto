@@ -14,12 +14,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "organetto.helloWorld",
-        "title": "Hello World"
-      },
-      {
         "command": "organetto.openNewTab",
-        "title": "ORGanetto: Open New Tab"
+        "title": "ORGanetto: Show my Salesforce Orgs"
       }
     ]
   },
