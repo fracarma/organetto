@@ -16,10 +16,23 @@ export function activate(context: vscode.ExtensionContext) {
 	const disposable = vscode.commands.registerCommand('organetto.helloWorld', () => {
 		// The code you place here will be executed every time your command is executed
 		// Display a message box to the user
+		console.log('log level from ORGanetto!');
+		console.warn('warn level from ORGanetto!');
+		console.error('error level from ORGanetto!');
 		vscode.window.showInformationMessage('Hello World from ORGanetto!');
 	});
 
+	const openNewTabDisposable = vscode.commands.registerCommand('organetto.openNewTab', async () => {
+		// Create a new untitled document and open it in a new tab
+		const document = await vscode.workspace.openTextDocument({
+			content: '',
+			language: 'plaintext'
+		});
+		await vscode.window.showTextDocument(document, { preview: false });
+	});
+
 	context.subscriptions.push(disposable);
+	context.subscriptions.push(openNewTabDisposable);
 }
 
 // This method is called when your extension is deactivated
