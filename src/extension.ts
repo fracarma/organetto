@@ -143,6 +143,41 @@ export function activate(context: vscode.ExtensionContext) {
 							vscode.window.showErrorMessage(`Failed to open org: ${error}`);
 						}
 						break;
+					case 'logoutOrg':
+						const logoutAlias = message.alias;
+						const confirmation = await vscode.window.showWarningMessage(
+							`Are you sure you want to log out of the org "${logoutAlias}"?`,
+							{ modal: true },
+							'Logout',
+							'Cancel'
+						);
+						
+						if (confirmation === 'Logout') {
+							try {
+								vscode.window.showInformationMessage(`Logging out of org: ${logoutAlias}...`);
+								await execPromise(`sf org logout --target-org ${logoutAlias} --no-prompt`);
+								
+								// Remove from last opened times
+								const logoutLastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
+								delete logoutLastOpenedTimes[logoutAlias];
+								await context.globalState.update('orgLastOpenedTimes', logoutLastOpenedTimes);
+								
+								// Remove from cached org list
+								const cachedOrgs = context.globalState.get<any[]>('salesforceOrgs') || [];
+								const updatedOrgs = cachedOrgs.filter(org => 
+									(org.alias || org.username) !== logoutAlias
+								);
+								await context.globalState.update('salesforceOrgs', updatedOrgs);
+								
+								vscode.window.showInformationMessage(`Logged out of org ${logoutAlias} successfully!`);
+								
+								// Tell webview to remove the row
+								panel.webview.postMessage({ command: 'removeOrg', alias: logoutAlias });
+							} catch (error) {
+								vscode.window.showErrorMessage(`Failed to logout of org: ${error}`);
+							}
+						}
+						break;
 				}
 			},
 			undefined,
@@ -222,7 +257,10 @@ export function activate(context: vscode.ExtensionContext) {
 							<td><span class="badge ${org.connectedStatus || ''}">${org.connectedStatus || '-'}</span></td>
 							<td>${lastUsedText}</td>
 							<td>
-								<button class="action-button" onclick="openOrg('${org.alias || org.username}')">🚀 Open</button>
+								<div class="action-buttons">
+									<button class="action-button" onclick="openOrg('${org.alias || org.username}')">🚀 Open</button>
+									<button class="action-button logout-button" onclick="logoutOrg('${org.alias || org.username}')">🚪 Logout</button>
+								</div>
 							</td>
 						</tr>
 						`;
@@ -474,6 +512,11 @@ export function activate(context: vscode.ExtensionContext) {
         .refresh-button:active {
             transform: scale(0.98);
         }
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
         .action-button {
             background-color: var(--vscode-button-secondaryBackground);
             color: var(--vscode-button-secondaryForeground);
@@ -489,6 +532,13 @@ export function activate(context: vscode.ExtensionContext) {
         }
         .action-button:active {
             transform: scale(0.98);
+        }
+        .logout-button {
+            background-color: rgba(255, 165, 0, 0.15);
+            color: var(--vscode-editorWarning-foreground);
+        }
+        .logout-button:hover {
+            background-color: rgba(255, 165, 0, 0.25);
         }
         .filter-bar {
             background-color: var(--vscode-editor-inactiveSelectionBackground);
@@ -559,6 +609,10 @@ export function activate(context: vscode.ExtensionContext) {
         
         function openOrg(alias) {
             vscode.postMessage({ command: 'openOrg', alias: alias });
+        }
+        
+        function logoutOrg(alias) {
+            vscode.postMessage({ command: 'logoutOrg', alias: alias });
         }
         
         function applyFilter() {
@@ -644,6 +698,31 @@ export function activate(context: vscode.ExtensionContext) {
             // Reapply filter after sorting
             applyFilter();
         }
+        
+        // Listen for messages from the extension
+        window.addEventListener('message', event => {
+            const message = event.data;
+            
+            switch (message.command) {
+                case 'removeOrg':
+                    // Find and remove the row with matching alias
+                    const rows = document.querySelectorAll('.org-row');
+                    rows.forEach(row => {
+                        const alias = row.getAttribute('data-alias');
+                        if (alias === message.alias.toLowerCase()) {
+                            row.remove();
+                            
+                            // Update total count
+                            const remainingRows = document.querySelectorAll('.org-row').length;
+                            const countElement = document.querySelector('.info-bar strong:first-child + *');
+                            if (countElement) {
+                                countElement.textContent = remainingRows;
+                            }
+                        }
+                    });
+                    break;
+            }
+        });
         
         // Apply filter on page load
         window.addEventListener('DOMContentLoaded', applyFilter);
