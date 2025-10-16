@@ -165,9 +165,15 @@ export function activate(context: vscode.ExtensionContext) {
 			<table>
 				<thead>
 					<tr>
-						<th>Alias</th>
-						<th>Status</th>
-						<th>Last Used</th>
+						<th class="sortable" onclick="sortTable('alias')">
+							Alias <span class="sort-indicator" id="sort-alias"></span>
+						</th>
+						<th class="sortable" onclick="sortTable('status')">
+							Status <span class="sort-indicator" id="sort-status"></span>
+						</th>
+						<th class="sortable" onclick="sortTable('lastused')">
+							Last Used <span class="sort-indicator" id="sort-lastused"></span>
+						</th>
 						<th>Actions</th>
 					</tr>
 				</thead>
@@ -198,7 +204,11 @@ export function activate(context: vscode.ExtensionContext) {
 						}
 						
 						return `
-						<tr class="org-row" data-connected="${org.connectedStatus === 'Connected'}">
+						<tr class="org-row" 
+							data-connected="${org.connectedStatus === 'Connected'}"
+							data-alias="${(org.alias || org.username || '').toLowerCase()}"
+							data-status="${org.connectedStatus || ''}"
+							data-lastused="${lastOpenedTimes[orgKey] || ''}">
 							<td>
 								<strong class="org-alias" data-org-index="${index}">
 									${org.alias || org.username || '-'}
@@ -316,6 +326,17 @@ export function activate(context: vscode.ExtensionContext) {
             text-align: left;
             font-weight: 600;
             border-bottom: 2px solid var(--vscode-textLink-foreground);
+        }
+        th.sortable {
+            cursor: pointer;
+            user-select: none;
+        }
+        th.sortable:hover {
+            background-color: var(--vscode-list-hoverBackground);
+        }
+        .sort-indicator {
+            color: var(--vscode-textLink-foreground);
+            font-size: 0.8em;
         }
         td {
             padding: 12px;
@@ -498,6 +519,7 @@ export function activate(context: vscode.ExtensionContext) {
     ${orgsHtml}
     <script>
         const vscode = acquireVsCodeApi();
+        let currentSort = { column: null, ascending: true };
         
         function refreshOrgs() {
             vscode.postMessage({ command: 'refresh' });
@@ -519,6 +541,67 @@ export function activate(context: vscode.ExtensionContext) {
                     row.style.display = '';
                 }
             });
+        }
+        
+        function sortTable(column) {
+            const tbody = document.getElementById('orgs-table-body');
+            const rows = Array.from(tbody.getElementsByClassName('org-row'));
+            
+            // Toggle sort direction if clicking the same column
+            if (currentSort.column === column) {
+                currentSort.ascending = !currentSort.ascending;
+            } else {
+                currentSort.column = column;
+                currentSort.ascending = true;
+            }
+            
+            // Sort rows
+            rows.sort((a, b) => {
+                let aVal, bVal;
+                
+                switch(column) {
+                    case 'alias':
+                        aVal = a.getAttribute('data-alias');
+                        bVal = b.getAttribute('data-alias');
+                        break;
+                    case 'status':
+                        aVal = a.getAttribute('data-status');
+                        bVal = b.getAttribute('data-status');
+                        break;
+                    case 'lastused':
+                        aVal = a.getAttribute('data-lastused');
+                        bVal = b.getAttribute('data-lastused');
+                        // Sort by date, with empty values (Never) at the end
+                        if (!aVal && !bVal) return 0;
+                        if (!aVal) return 1;
+                        if (!bVal) return -1;
+                        return currentSort.ascending ? 
+                            new Date(bVal) - new Date(aVal) : 
+                            new Date(aVal) - new Date(bVal);
+                }
+                
+                // String comparison for alias and status
+                if (column !== 'lastused') {
+                    if (aVal < bVal) return currentSort.ascending ? -1 : 1;
+                    if (aVal > bVal) return currentSort.ascending ? 1 : -1;
+                    return 0;
+                }
+                
+                return 0;
+            });
+            
+            // Reorder DOM elements
+            rows.forEach(row => tbody.appendChild(row));
+            
+            // Update sort indicators
+            document.querySelectorAll('.sort-indicator').forEach(el => el.textContent = '');
+            const indicator = document.getElementById('sort-' + column);
+            if (indicator) {
+                indicator.textContent = currentSort.ascending ? ' ▲' : ' ▼';
+            }
+            
+            // Reapply filter after sorting
+            applyFilter();
         }
         
         // Apply filter on page load
