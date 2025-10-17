@@ -39,6 +39,10 @@
             vscode.postMessage({ command: 'setDefaultOrg', alias: alias });
         }
         
+        function reauthenticateOrg(alias) {
+            vscode.postMessage({ command: 'reauthenticate', alias: alias });
+        }
+        
         function toggleDropdown(event, index) {
             event.stopPropagation();
             const dropdown = document.getElementById('dropdown-' + index);

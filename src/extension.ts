@@ -265,6 +265,40 @@ export function activate(context: vscode.ExtensionContext) {
 							vscode.window.showErrorMessage(`Failed to set default org: ${error}`);
 						}
 						break;
+					case 'reauthenticate':
+						try {
+							const reauthAlias = message.alias;
+							logger.log(`Reauthenticating org: ${reauthAlias}`);
+							
+							// Get the org details to retrieve the instance URL
+							const { stdout } = await execPromise(`sf org display --target-org ${reauthAlias} --json`);
+							const result = JSON.parse(stdout);
+							const instanceUrl = result?.result?.instanceUrl;
+							
+							if (!instanceUrl) {
+								logger.warn(`Instance URL not found for org: ${reauthAlias}`);
+								vscode.window.showErrorMessage(`Could not find instance URL for org ${reauthAlias}`);
+								break;
+							}
+							
+							logger.log(`Instance URL for ${reauthAlias}: ${instanceUrl}`);
+							vscode.window.showInformationMessage(`Reauthenticating org: ${reauthAlias}...`);
+							
+							// Execute the reauthentication command
+							await execPromise(`sf org login web --alias ${reauthAlias} --instance-url ${instanceUrl}`);
+							
+							vscode.window.showInformationMessage(`Org ${reauthAlias} reauthenticated successfully!`);
+							logger.log(`Successfully reauthenticated org: ${reauthAlias}`);
+							
+							// Refresh the org list to show updated status
+							const orgs = await fetchAndCacheOrgs(true);
+							const reauthLastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
+							panel.webview.html = getWebviewContent(orgs, reauthLastOpenedTimes, false);
+						} catch (error) {
+							logger.error(`Error reauthenticating org ${message.alias}:`, error);
+							vscode.window.showErrorMessage(`Failed to reauthenticate org: ${error}`);
+						}
+						break;
 				}
 			},
 			undefined,
@@ -386,6 +420,7 @@ export function activate(context: vscode.ExtensionContext) {
 										<div class="dropdown-menu" id="dropdown-${index}">
 											<button class="dropdown-item" onclick="setDefaultOrg('${org.alias || org.username}')">⭐ Set as Default</button>
 											<button class="dropdown-item" onclick="getAuthUrl('${org.alias || org.username}')">🔑 Get Auth URL</button>
+											<button class="dropdown-item" onclick="reauthenticateOrg('${org.alias || org.username}')">🔐 Reauthenticate</button>
 											<button class="dropdown-item logout-item" onclick="logoutOrg('${org.alias || org.username}')">🚪 Logout</button>
 										</div>
 									</div>
