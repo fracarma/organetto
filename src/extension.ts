@@ -378,8 +378,8 @@ export function activate(context: vscode.ExtensionContext) {
 									<div class="dropdown">
 										<button class="action-button dropdown-toggle" onclick="toggleDropdown(event, ${index})">⋯</button>
 										<div class="dropdown-menu" id="dropdown-${index}">
-											<button class="dropdown-item" onclick="setDefaultOrg('${org.alias || org.username}')">⭐ Set Default</button>
-											<button class="dropdown-item" onclick="getAuthUrl('${org.alias || org.username}')">🔑 Auth URL</button>
+											<button class="dropdown-item" onclick="setDefaultOrg('${org.alias || org.username}')">⭐ Set as Default</button>
+											<button class="dropdown-item" onclick="getAuthUrl('${org.alias || org.username}')">🔑 Get Auth URL</button>
 											<button class="dropdown-item logout-item" onclick="logoutOrg('${org.alias || org.username}')">🚪 Logout</button>
 										</div>
 									</div>
