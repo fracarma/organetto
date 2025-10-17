@@ -199,6 +199,36 @@ export function activate(context: vscode.ExtensionContext) {
 							}
 						}
 						break;
+					case 'getAuthUrl':
+						try {
+							const authAlias = message.alias;
+							vscode.window.showInformationMessage(`Retrieving Auth URL for org: ${authAlias}...`);
+							const { stdout } = await execPromise(`sf org display --target-org ${authAlias} --verbose --json`);
+							
+							// Parse the JSON output
+							const result = JSON.parse(stdout);
+							const authUrl = result?.result?.sfdxAuthUrl;
+							
+							if (authUrl) {
+								// Copy to clipboard automatically
+								await vscode.env.clipboard.writeText(authUrl);
+								
+								// Show the auth URL in an input box so user can see and copy it
+								await vscode.window.showInputBox({
+									prompt: `Auth URL for ${authAlias} (already copied to clipboard)`,
+									value: authUrl,
+									ignoreFocusOut: true,
+									title: 'SFDX Auth URL'
+								});
+								
+								vscode.window.showInformationMessage(`Auth URL copied to clipboard!`);
+							} else {
+								vscode.window.showErrorMessage(`Could not find Auth URL in the response for org ${authAlias}`);
+							}
+						} catch (error) {
+							vscode.window.showErrorMessage(`Failed to get Auth URL: ${error}`);
+						}
+						break;
 				}
 			},
 			undefined,
@@ -233,7 +263,7 @@ export function activate(context: vscode.ExtensionContext) {
 							Status <span class="sort-indicator" id="sort-status"></span>
 						</th>
 						<th class="sortable" onclick="sortTable('lastused')">
-							Last Used <span class="sort-indicator" id="sort-lastused"></span>
+							Last Opened <span class="sort-indicator" id="sort-lastused"></span>
 						</th>
 						<th>Actions</th>
 					</tr>
@@ -280,6 +310,7 @@ export function activate(context: vscode.ExtensionContext) {
 							<td>
 								<div class="action-buttons">
 									<button class="action-button" onclick="openOrg('${org.alias || org.username}')">🚀 Open</button>
+									<button class="action-button auth-url-button" onclick="getAuthUrl('${org.alias || org.username}')">🔑 Auth URL</button>
 									<button class="action-button logout-button" onclick="logoutOrg('${org.alias || org.username}')">🚪 Logout</button>
 								</div>
 							</td>
@@ -548,6 +579,13 @@ export function activate(context: vscode.ExtensionContext) {
         .action-button:active {
             transform: scale(0.98);
         }
+        .auth-url-button {
+            background-color: rgba(0, 120, 212, 0.15);
+            color: var(--vscode-textLink-foreground);
+        }
+        .auth-url-button:hover {
+            background-color: rgba(0, 120, 212, 0.25);
+        }
         .logout-button {
             background-color: rgba(255, 165, 0, 0.15);
             color: var(--vscode-editorWarning-foreground);
@@ -625,6 +663,10 @@ export function activate(context: vscode.ExtensionContext) {
         
         function logoutOrg(alias) {
             vscode.postMessage({ command: 'logoutOrg', alias: alias });
+        }
+        
+        function getAuthUrl(alias) {
+            vscode.postMessage({ command: 'getAuthUrl', alias: alias });
         }
         
         function applyFilter() {
