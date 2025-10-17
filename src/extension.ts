@@ -39,8 +39,8 @@ export function activate(context: vscode.ExtensionContext) {
 		logger.log('Fetching fresh org data from SF CLI...');
 		
 		try {
-			// Execute sf org list command
-			const { stdout, stderr } = await execPromise('sf org list --json');
+			// Execute sf org list command with --all to include scratch orgs
+			const { stdout, stderr } = await execPromise('sf org list --all --json');
 			
 			if (stderr) {
 				logger.error('Error executing sf org list:', stderr);
@@ -321,6 +321,7 @@ export function activate(context: vscode.ExtensionContext) {
 			<table>
 				<thead>
 					<tr>
+						<th>Type</th>
 						<th class="sortable" onclick="sortTable('alias')">
 							Alias <span class="sort-indicator" id="sort-alias"></span>
 						</th>
@@ -365,6 +366,11 @@ export function activate(context: vscode.ExtensionContext) {
 							data-alias="${(org.alias || org.username || '').toLowerCase()}"
 							data-status="${org.connectedStatus || ''}"
 							data-lastused="${lastOpenedTimes[orgKey] || ''}">
+							<td>
+								<span class="org-type-icon" title="${org.isScratch ? 'Scratch Org' : org.isDevHub ? 'Dev Hub' : org.isSandbox ? 'Sandbox' : 'Production'}">
+									${org.isScratch ? '⚡' : org.isDevHub ? '🔧' : org.isSandbox ? '🧪' : '🏢'}
+								</span>
+							</td>
 							<td>
 								<strong class="org-alias" data-org-index="${index}">
 									${org.alias || org.username || '-'} <span style="opacity: 0.6; font-size: 0.9em;">ℹ️</span>
@@ -433,7 +439,17 @@ export function activate(context: vscode.ExtensionContext) {
 					document.getElementById('popover-orgid').textContent = org.orgId || '-';
 					document.getElementById('popover-url').textContent = org.instanceUrl || '-';
 					document.getElementById('popover-url').href = org.instanceUrl || '#';
-					document.getElementById('popover-type').textContent = org.isDevHub ? '🔧 Dev Hub' : org.isSandbox ? '🧪 Sandbox' : '🏢 Production';
+					
+					// Determine org type
+					let orgType = '🏢 Production';
+					if (org.isScratch) {
+						orgType = '⚡ Scratch Org';
+					} else if (org.isDevHub) {
+						orgType = '🔧 Dev Hub';
+					} else if (org.isSandbox) {
+						orgType = '🧪 Sandbox';
+					}
+					document.getElementById('popover-type').textContent = orgType;
 					
 					// Position and show popover
 					popover.style.display = 'block';

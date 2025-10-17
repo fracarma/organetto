@@ -346,3 +346,8 @@ code {
     color: var(--vscode-editorWarning-foreground);
 }
 
+.org-type-icon {
+    cursor: default;
+    font-size: 1.2em;
+}
+
