@@ -15,6 +15,49 @@ const logger = {
 	error: (...args: any[]) => console.error('[ORGanetto]', ...args)
 };
 
+// Helper function to check SF CLI version
+async function checkSfCliVersion(): Promise<boolean> {
+	try {
+		const { stdout } = await execPromise('sf --version');
+		logger.log('SF CLI version output:', stdout);
+		
+		// Parse version from output (format: "@salesforce/cli/2.105.0 darwin-arm64 node-v20.11.0")
+		const versionMatch = stdout.match(/@salesforce\/cli\/(\d+)\.(\d+)\.(\d+)/);
+		
+		if (!versionMatch) {
+			logger.error('Could not parse SF CLI version from output');
+			return false;
+		}
+		
+		const major = parseInt(versionMatch[1], 10);
+		const minor = parseInt(versionMatch[2], 10);
+		const patch = parseInt(versionMatch[3], 10);
+		
+		logger.log(`Detected SF CLI version: ${major}.${minor}.${patch}`);
+		
+		// Check if version is >= 2.105.0
+		if (major > 2) {
+			return true;
+		}
+		if (major === 2 && minor > 105) {
+			return true;
+		}
+		if (major === 2 && minor === 105 && patch >= 0) {
+			return true;
+		}
+		
+		logger.error('SF CLI version check failed');
+		vscode.window.showErrorMessage(
+			`ORGanetto requires Salesforce CLI version 2.105.0 or higher, you are using version ${major}.${minor}.${patch}. Please update SF CLI by following the instructions here: https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_update_cli.html`,
+			'OK'
+		);
+		return false;
+	} catch (error) {
+		logger.error('Error checking SF CLI version:', error);
+		return false;
+	}
+}
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -22,6 +65,9 @@ export function activate(context: vscode.ExtensionContext) {
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
 	logger.log('Congratulations, your extension "organetto" is now active!');
+
+	// Check SF CLI version before doing anything
+	checkSfCliVersion();
 
 	// Store reference to the webview panel
 	let currentPanel: vscode.WebviewPanel | undefined = undefined;
