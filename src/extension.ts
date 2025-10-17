@@ -150,7 +150,7 @@ export function activate(context: vscode.ExtensionContext) {
 							cancellable: false
 						}, async (progress) => {
 							try {
-								progress.report({ increment: 0 });
+								
 								const refreshLastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
 								panel.webview.html = getWebviewContent([], refreshLastOpenedTimes, true);
 								
@@ -177,7 +177,7 @@ export function activate(context: vscode.ExtensionContext) {
 							cancellable: false
 						}, async (progress) => {
 							try {
-								progress.report({ increment: 0 });
+								
 								await execPromise(`sf org open -o ${alias}`);
 								
 								// Track the last opened time
@@ -214,7 +214,7 @@ export function activate(context: vscode.ExtensionContext) {
 								cancellable: false
 							}, async (progress) => {
 								try {
-									progress.report({ increment: 0 });
+									
 									await execPromise(`sf org logout --target-org ${logoutAlias} --no-prompt`);
 									
 									// Remove from last opened times
@@ -252,7 +252,7 @@ export function activate(context: vscode.ExtensionContext) {
 							cancellable: false
 						}, async (progress) => {
 							try {
-								progress.report({ increment: 0 });
+								
 								const { stdout } = await execPromise(`sf org display --target-org ${authAlias} --verbose --json`);
 								
 								// Parse the JSON output
@@ -292,7 +292,7 @@ export function activate(context: vscode.ExtensionContext) {
 							cancellable: false
 						}, async (progress) => {
 							try {
-								progress.report({ increment: 0 });
+								
 								await execPromise(`sf config set target-org ${defaultAlias}`);
 								progress.report({ increment: 100, message: 'Success!' });
 								logger.log(`Successfully set default org to: ${defaultAlias}`);
