@@ -28,7 +28,7 @@
     "lint": "eslint src",
     "test": "vscode-test",
     "check-types": "tsc --noEmit",
-    "package": "npm run check-types && node esbuild.js --production"
+    "package": "npm run check-types && node esbuild.js --production && vsce package"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
@@ -38,6 +38,7 @@
     "@typescript-eslint/parser": "^8.45.0",
     "@vscode/test-cli": "^0.0.11",
     "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.6.2",
     "esbuild": "^0.25.11",
     "eslint": "^9.36.0",
     "typescript": "^5.9.3"
