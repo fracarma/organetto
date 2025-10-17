@@ -144,42 +144,58 @@ export function activate(context: vscode.ExtensionContext) {
 				switch (message.command) {
 					case 'refresh':
 						logger.log('Refreshing org list');
-						try {
-							const refreshLastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
-							panel.webview.html = getWebviewContent([], refreshLastOpenedTimes, true);
-							const orgs = await fetchAndCacheOrgs(true);
-							panel.webview.html = getWebviewContent(orgs, refreshLastOpenedTimes, false);
-							vscode.window.showInformationMessage('Org list refreshed!');
-							logger.log('Org list refresh completed successfully');
-						} catch (error) {
-							logger.error('Error refreshing org list:', error);
-							vscode.window.showErrorMessage(`Failed to refresh orgs: ${error}`);
-							const errorLastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
-							panel.webview.html = getWebviewContent([], errorLastOpenedTimes, false, `Error: ${error}`);
-						}
+						await vscode.window.withProgress({
+							location: vscode.ProgressLocation.Notification,
+							title: 'Refreshing org list',
+							cancellable: false
+						}, async (progress) => {
+							try {
+								progress.report({ increment: 0 });
+								const refreshLastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
+								panel.webview.html = getWebviewContent([], refreshLastOpenedTimes, true);
+								
+								progress.report({ increment: 50, message: 'Fetching orgs...' });
+								const orgs = await fetchAndCacheOrgs(true);
+								panel.webview.html = getWebviewContent(orgs, refreshLastOpenedTimes, false);
+								
+								progress.report({ increment: 100, message: 'Success!' });
+								logger.log('Org list refresh completed successfully');
+							} catch (error) {
+								logger.error('Error refreshing org list:', error);
+								vscode.window.showErrorMessage(`Failed to refresh orgs: ${error}`);
+								const errorLastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
+								panel.webview.html = getWebviewContent([], errorLastOpenedTimes, false, `Error: ${error}`);
+							}
+						});
 						break;
 					case 'openOrg':
-						try {
-							const alias = message.alias;
-							logger.log(`Opening org: ${alias}`);
-							vscode.window.showInformationMessage(`Opening org: ${alias}...`);
-							await execPromise(`sf org open -o ${alias}`);
-							
-							// Track the last opened time
-							const lastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
-							lastOpenedTimes[alias] = new Date().toISOString();
-							await context.globalState.update('orgLastOpenedTimes', lastOpenedTimes);
-							
-							vscode.window.showInformationMessage(`Org ${alias} opened successfully!`);
-							logger.log(`Org ${alias} opened successfully`);
-							
-							// Refresh the view to show updated last opened time
-							const orgs = await fetchAndCacheOrgs(false);
-							panel.webview.html = getWebviewContent(orgs, lastOpenedTimes, false);
-						} catch (error) {
-							logger.error(`Error opening org ${message.alias}:`, error);
-							vscode.window.showErrorMessage(`Failed to open org: ${error}`);
-						}
+						const alias = message.alias;
+						logger.log(`Opening org: ${alias}`);
+						await vscode.window.withProgress({
+							location: vscode.ProgressLocation.Notification,
+							title: `Opening org: ${alias}`,
+							cancellable: false
+						}, async (progress) => {
+							try {
+								progress.report({ increment: 0 });
+								await execPromise(`sf org open -o ${alias}`);
+								
+								// Track the last opened time
+								const lastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
+								lastOpenedTimes[alias] = new Date().toISOString();
+								await context.globalState.update('orgLastOpenedTimes', lastOpenedTimes);
+								
+								progress.report({ increment: 100, message: 'Success!' });
+								logger.log(`Org ${alias} opened successfully`);
+								
+								// Refresh the view to show updated last opened time
+								const orgs = await fetchAndCacheOrgs(false);
+								panel.webview.html = getWebviewContent(orgs, lastOpenedTimes, false);
+							} catch (error) {
+								logger.error(`Error opening org ${message.alias}:`, error);
+								vscode.window.showErrorMessage(`Failed to open org: ${error}`);
+							}
+						});
 						break;
 					case 'logoutOrg':
 						const logoutAlias = message.alias;
@@ -192,124 +208,151 @@ export function activate(context: vscode.ExtensionContext) {
 						
 						if (confirmation === 'Logout') {
 							logger.log(`Logout confirmed for org: ${logoutAlias}`);
-							try {
-								vscode.window.showInformationMessage(`Logging out of org: ${logoutAlias}...`);
-								await execPromise(`sf org logout --target-org ${logoutAlias} --no-prompt`);
-								
-								// Remove from last opened times
-								const logoutLastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
-								delete logoutLastOpenedTimes[logoutAlias];
-								await context.globalState.update('orgLastOpenedTimes', logoutLastOpenedTimes);
-								
-								// Remove from cached org list
-								const cachedOrgs = context.globalState.get<any[]>('salesforceOrgs') || [];
-								const updatedOrgs = cachedOrgs.filter(org => 
-									(org.alias || org.username) !== logoutAlias
-								);
-								await context.globalState.update('salesforceOrgs', updatedOrgs);
-								
-								vscode.window.showInformationMessage(`Logged out of org ${logoutAlias} successfully!`);
-								logger.log(`Successfully logged out of org: ${logoutAlias}`);
-								
-								// Tell webview to remove the row
-								panel.webview.postMessage({ command: 'removeOrg', alias: logoutAlias });
-							} catch (error) {
-								logger.error(`Error logging out of org ${logoutAlias}:`, error);
-								vscode.window.showErrorMessage(`Failed to logout of org: ${error}`);
-							}
+							await vscode.window.withProgress({
+								location: vscode.ProgressLocation.Notification,
+								title: `Logging out of org: ${logoutAlias}`,
+								cancellable: false
+							}, async (progress) => {
+								try {
+									progress.report({ increment: 0 });
+									await execPromise(`sf org logout --target-org ${logoutAlias} --no-prompt`);
+									
+									// Remove from last opened times
+									const logoutLastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
+									delete logoutLastOpenedTimes[logoutAlias];
+									await context.globalState.update('orgLastOpenedTimes', logoutLastOpenedTimes);
+									
+									// Remove from cached org list
+									const cachedOrgs = context.globalState.get<any[]>('salesforceOrgs') || [];
+									const updatedOrgs = cachedOrgs.filter(org => 
+										(org.alias || org.username) !== logoutAlias
+									);
+									await context.globalState.update('salesforceOrgs', updatedOrgs);
+									
+									progress.report({ increment: 100, message: 'Success!' });
+									logger.log(`Successfully logged out of org: ${logoutAlias}`);
+									
+									// Tell webview to remove the row
+									panel.webview.postMessage({ command: 'removeOrg', alias: logoutAlias });
+								} catch (error) {
+									logger.error(`Error logging out of org ${logoutAlias}:`, error);
+									vscode.window.showErrorMessage(`Failed to logout of org: ${error}`);
+								}
+							});
 						} else {
 							logger.log(`Logout cancelled for org: ${logoutAlias}`);
 						}
 						break;
 					case 'getAuthUrl':
-						try {
-							const authAlias = message.alias;
-							logger.log(`Retrieving Auth URL for org: ${authAlias}`);
-							vscode.window.showInformationMessage(`Retrieving Auth URL for org: ${authAlias}...`);
-							const { stdout } = await execPromise(`sf org display --target-org ${authAlias} --verbose --json`);
-							
-							// Parse the JSON output
-							const result = JSON.parse(stdout);
-							const authUrl = result?.result?.sfdxAuthUrl;
-							
-							if (authUrl) {
-								logger.log(`Successfully retrieved Auth URL for org: ${authAlias}`);
-								// Copy to clipboard automatically
-								await vscode.env.clipboard.writeText(authUrl);
+						const authAlias = message.alias;
+						logger.log(`Retrieving Auth URL for org: ${authAlias}`);
+						await vscode.window.withProgress({
+							location: vscode.ProgressLocation.Notification,
+							title: `Retrieving Auth URL for org: ${authAlias}`,
+							cancellable: false
+						}, async (progress) => {
+							try {
+								progress.report({ increment: 0 });
+								const { stdout } = await execPromise(`sf org display --target-org ${authAlias} --verbose --json`);
 								
-								// Show the auth URL in an input box so user can see and copy it
-								await vscode.window.showInputBox({
-									prompt: `Auth URL for ${authAlias} (already copied to clipboard)`,
-									value: authUrl,
-									ignoreFocusOut: true,
-									title: 'SFDX Auth URL'
-								});
+								// Parse the JSON output
+								const result = JSON.parse(stdout);
+								const authUrl = result?.result?.sfdxAuthUrl;
 								
-								vscode.window.showInformationMessage(`Auth URL copied to clipboard!`);
-							} else {
-								logger.warn(`Auth URL not found in response for org: ${authAlias}`);
-								vscode.window.showErrorMessage(`Could not find Auth URL in the response for org ${authAlias}`);
+								if (authUrl) {
+									logger.log(`Successfully retrieved Auth URL for org: ${authAlias}`);
+									// Copy to clipboard automatically
+									await vscode.env.clipboard.writeText(authUrl);
+									
+									progress.report({ increment: 100, message: 'Copied to clipboard!' });
+									
+									// Show the auth URL in an input box so user can see and copy it
+									await vscode.window.showInputBox({
+										prompt: `Auth URL for ${authAlias} (already copied to clipboard)`,
+										value: authUrl,
+										ignoreFocusOut: true,
+										title: 'SFDX Auth URL'
+									});
+								} else {
+									logger.warn(`Auth URL not found in response for org: ${authAlias}`);
+									vscode.window.showErrorMessage(`Could not find Auth URL in the response for org ${authAlias}`);
+								}
+							} catch (error) {
+								logger.error(`Error retrieving Auth URL for org ${message.alias}:`, error);
+								vscode.window.showErrorMessage(`Failed to get Auth URL: ${error}`);
 							}
-						} catch (error) {
-							logger.error(`Error retrieving Auth URL for org ${message.alias}:`, error);
-							vscode.window.showErrorMessage(`Failed to get Auth URL: ${error}`);
-						}
+						});
 						break;
 					case 'setDefaultOrg':
-						try {
-							const defaultAlias = message.alias;
-							logger.log(`Setting default org to: ${defaultAlias}`);
-							vscode.window.showInformationMessage(`Setting default org to: ${defaultAlias}...`);
-							await execPromise(`sf config set target-org ${defaultAlias}`);
-							vscode.window.showInformationMessage(`Default org set to ${defaultAlias} successfully!`);
-							logger.log(`Successfully set default org to: ${defaultAlias}`);
-						} catch (error) {
-							logger.error(`Error setting default org to ${message.alias}:`, error);
-							vscode.window.showErrorMessage(`Failed to set default org: ${error}`);
-						}
+						const defaultAlias = message.alias;
+						logger.log(`Setting default org to: ${defaultAlias}`);
+						await vscode.window.withProgress({
+							location: vscode.ProgressLocation.Notification,
+							title: `Setting default org: ${defaultAlias}`,
+							cancellable: false
+						}, async (progress) => {
+							try {
+								progress.report({ increment: 0 });
+								await execPromise(`sf config set target-org ${defaultAlias}`);
+								progress.report({ increment: 100, message: 'Success!' });
+								logger.log(`Successfully set default org to: ${defaultAlias}`);
+							} catch (error) {
+								logger.error(`Error setting default org to ${message.alias}:`, error);
+								vscode.window.showErrorMessage(`Failed to set default org: ${error}`);
+							}
+						});
 						break;
 					case 'reauthenticate':
-						try {
-							const reauthAlias = message.alias;
-							logger.log(`Reauthenticating org: ${reauthAlias}`);
-							
-							// Get the org details from cached data
-							const cachedOrgs = context.globalState.get<any[]>('salesforceOrgs') || [];
-							const org = cachedOrgs.find(o => 
-								(o?.alias === reauthAlias) || 
-								(o?.username === reauthAlias)
-							);
-							
-							if (!org) {
-								logger.warn(`Org not found in cache: ${reauthAlias}`);
-								vscode.window.showErrorMessage(`Could not find org ${reauthAlias} in cached data`);
-								break;
-							}
-							
-							const instanceUrl = org.instanceUrl;
-							if (!instanceUrl) {
-								logger.warn(`Instance URL not found for org: ${reauthAlias}`);
-								vscode.window.showErrorMessage(`Could not find instance URL for org ${reauthAlias}`);
-								break;
-							}
-							
-							logger.log(`Instance URL for ${reauthAlias}: ${instanceUrl}`);
-							vscode.window.showInformationMessage(`Reauthenticating org: ${reauthAlias}...`);
-							
-							// Execute the reauthentication command
-							await execPromise(`sf org login web --alias ${reauthAlias} --instance-url ${instanceUrl}`);
-							
-							vscode.window.showInformationMessage(`Org ${reauthAlias} reauthenticated successfully!`);
-							logger.log(`Successfully reauthenticated org: ${reauthAlias}`);
-							
-							// Refresh the org list to show updated status
-							const orgs = await fetchAndCacheOrgs(true);
-							const reauthLastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
-							panel.webview.html = getWebviewContent(orgs, reauthLastOpenedTimes, false);
-						} catch (error) {
-							logger.error(`Error reauthenticating org ${message.alias}:`, error);
-							vscode.window.showErrorMessage(`Failed to reauthenticate org: ${error}`);
+						const reauthAlias = message.alias;
+						logger.log(`Reauthenticating org: ${reauthAlias}`);
+						
+						// Get the org details from cached data
+						const cachedOrgs = context.globalState.get<any[]>('salesforceOrgs') || [];
+						const org = cachedOrgs.find(o => 
+							(o?.alias === reauthAlias) || 
+							(o?.username === reauthAlias)
+						);
+						
+						if (!org) {
+							logger.warn(`Org not found in cache: ${reauthAlias}`);
+							vscode.window.showErrorMessage(`Could not find org ${reauthAlias} in cached data`);
+							break;
 						}
+						
+						const instanceUrl = org.instanceUrl;
+						if (!instanceUrl) {
+							logger.warn(`Instance URL not found for org: ${reauthAlias}`);
+							vscode.window.showErrorMessage(`Could not find instance URL for org ${reauthAlias}`);
+							break;
+						}
+						
+						logger.log(`Instance URL for ${reauthAlias}: ${instanceUrl}`);
+						
+						await vscode.window.withProgress({
+							location: vscode.ProgressLocation.Notification,
+							title: `Reauthenticating org: ${reauthAlias}`,
+							cancellable: false
+						}, async (progress) => {
+							try {
+								progress.report({ increment: 0, message: 'Opening browser...' });
+								
+								// Execute the reauthentication command
+								await execPromise(`sf org login web --alias ${reauthAlias} --instance-url ${instanceUrl}`);
+								
+								progress.report({ increment: 50, message: 'Refreshing org list...' });
+								logger.log(`Successfully reauthenticated org: ${reauthAlias}`);
+								
+								// Refresh the org list to show updated status
+								const orgs = await fetchAndCacheOrgs(true);
+								const reauthLastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
+								panel.webview.html = getWebviewContent(orgs, reauthLastOpenedTimes, false);
+								
+								progress.report({ increment: 100, message: 'Success!' });
+							} catch (error) {
+								logger.error(`Error reauthenticating org ${message.alias}:`, error);
+								vscode.window.showErrorMessage(`Failed to reauthenticate org: ${error}`);
+							}
+						});
 						break;
 				}
 			},
