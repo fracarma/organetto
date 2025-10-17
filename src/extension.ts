@@ -3,6 +3,8 @@
 import * as vscode from 'vscode';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import * as path from 'path';
+import * as fs from 'fs';
 
 const execPromise = promisify(exec);
 
@@ -236,7 +238,31 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 	});
 
-	function getWebviewContent(orgs: any[], lastOpenedTimes: Record<string, string>, isRefreshing: boolean, error?: string) {
+	function getWebviewContent(orgs: any[], lastOpenedTimes: Record<string, string>, isRefreshing: boolean, error?: string): string {
+		// Read template and CSS files
+		// Try different locations depending on build mode (src for dev, out for tsc, dist for esbuild)
+		let templatePath: string;
+		let stylesPath: string;
+		
+		// Try out/ first (tsc build), then dist/ (esbuild), then src/ (dev)
+		const possiblePaths = ['out', 'dist', 'src'];
+		for (const dir of possiblePaths) {
+			const testPath = path.join(context.extensionPath, dir, 'webview', 'template.html');
+			if (fs.existsSync(testPath)) {
+				templatePath = testPath;
+				stylesPath = path.join(context.extensionPath, dir, 'webview', 'styles.css');
+				break;
+			}
+		}
+		
+		if (!templatePath! || !stylesPath!) {
+			throw new Error('Could not find webview template files');
+		}
+		
+		const template = fs.readFileSync(templatePath, 'utf8');
+		const styles = fs.readFileSync(stylesPath, 'utf8');
+		
+		// Generate dynamic content
 		const orgsHtml = orgs.length === 0 && !error
 			? '<p style="text-align: center; padding: 40px; color: var(--vscode-descriptionForeground);">' + (isRefreshing ? 'Refreshing orgs...' : 'Loading orgs...') + '</p>'
 			: error
@@ -389,421 +415,10 @@ export function activate(context: vscode.ExtensionContext) {
 			</script>
 			`;
 
-		return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORGanetto - Salesforce Orgs</title>
-    <style>
-        body {
-            padding: 20px;
-            font-family: var(--vscode-font-family);
-            color: var(--vscode-foreground);
-            background-color: var(--vscode-editor-background);
-            margin: 0;
-        }
-        h1 {
-            color: var(--vscode-textLink-foreground);
-            border-bottom: 2px solid var(--vscode-textLink-foreground);
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th {
-            background-color: var(--vscode-editor-inactiveSelectionBackground);
-            color: var(--vscode-foreground);
-            padding: 12px;
-            text-align: left;
-            font-weight: 600;
-            border-bottom: 2px solid var(--vscode-textLink-foreground);
-        }
-        th.sortable {
-            cursor: pointer;
-            user-select: none;
-        }
-        th.sortable:hover {
-            background-color: var(--vscode-list-hoverBackground);
-        }
-        .sort-indicator {
-            color: var(--vscode-textLink-foreground);
-            font-size: 0.8em;
-        }
-        td {
-            padding: 12px;
-            border-bottom: 1px solid var(--vscode-widget-border);
-        }
-        tr:hover {
-            background-color: var(--vscode-list-hoverBackground);
-        }
-        a {
-            color: var(--vscode-textLink-foreground);
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        code {
-            background-color: var(--vscode-textCodeBlock-background);
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: var(--vscode-editor-font-family);
-            font-size: 0.9em;
-        }
-        .badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.85em;
-            font-weight: 500;
-        }
-        .badge.Connected {
-            background-color: rgba(0, 128, 0, 0.2);
-            color: #4caf50;
-        }
-        .badge.RefreshTokenAuthError,
-        .badge.Unknown {
-            background-color: rgba(255, 165, 0, 0.2);
-            color: #ff9800;
-        }
-        .org-alias {
-            cursor: pointer;
-            color: var(--vscode-textLink-foreground);
-            text-decoration: underline;
-            text-decoration-style: dotted;
-        }
-        .org-alias:hover {
-            opacity: 0.8;
-        }
-        .popover {
-            position: fixed;
-            z-index: 1000;
-            background-color: var(--vscode-editorHoverWidget-background);
-            border: 1px solid var(--vscode-editorHoverWidget-border);
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            min-width: 300px;
-            max-width: 500px;
-        }
-        .popover-content {
-            padding: 0;
-        }
-        .popover-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--vscode-widget-border);
-            background-color: var(--vscode-editor-inactiveSelectionBackground);
-            border-radius: 6px 6px 0 0;
-        }
-        .popover-close {
-            background: none;
-            border: none;
-            color: var(--vscode-foreground);
-            cursor: pointer;
-            font-size: 16px;
-            padding: 0;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 3px;
-        }
-        .popover-close:hover {
-            background-color: var(--vscode-toolbar-hoverBackground);
-        }
-        .popover-body {
-            padding: 16px;
-        }
-        .popover-item {
-            margin-bottom: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .popover-item:last-child {
-            margin-bottom: 0;
-        }
-        .popover-label {
-            font-weight: 600;
-            font-size: 0.9em;
-            color: var(--vscode-descriptionForeground);
-        }
-        .popover-item code {
-            word-break: break-all;
-        }
-        .popover-item a {
-            word-break: break-all;
-        }
-        .refresh-button {
-            background-color: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
-            border: none;
-            padding: 8px 16px;
-            cursor: pointer;
-            font-size: 14px;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .refresh-button:hover {
-            background-color: var(--vscode-button-hoverBackground);
-        }
-        .refresh-button:active {
-            transform: scale(0.98);
-        }
-        .action-buttons {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        .action-button {
-            background-color: var(--vscode-button-secondaryBackground);
-            color: var(--vscode-button-secondaryForeground);
-            border: none;
-            padding: 6px 12px;
-            cursor: pointer;
-            font-size: 13px;
-            border-radius: 4px;
-            white-space: nowrap;
-        }
-        .action-button:hover {
-            background-color: var(--vscode-button-secondaryHoverBackground);
-        }
-        .action-button:active {
-            transform: scale(0.98);
-        }
-        .auth-url-button {
-            background-color: rgba(0, 120, 212, 0.15);
-            color: var(--vscode-textLink-foreground);
-        }
-        .auth-url-button:hover {
-            background-color: rgba(0, 120, 212, 0.25);
-        }
-        .logout-button {
-            background-color: rgba(255, 165, 0, 0.15);
-            color: var(--vscode-editorWarning-foreground);
-        }
-        .logout-button:hover {
-            background-color: rgba(255, 165, 0, 0.25);
-        }
-        .filter-bar {
-            background-color: var(--vscode-editor-inactiveSelectionBackground);
-            padding: 12px 16px;
-            border-radius: 4px;
-            margin-bottom: 16px;
-        }
-        .filter-controls {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-        .search-box {
-            flex: 1;
-            min-width: 200px;
-        }
-        .search-box input {
-            width: 100%;
-            padding: 6px 12px;
-            background-color: var(--vscode-input-background);
-            color: var(--vscode-input-foreground);
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 4px;
-            font-size: 14px;
-            outline: none;
-        }
-        .search-box input:focus {
-            border-color: var(--vscode-focusBorder);
-        }
-        .search-box input::placeholder {
-            color: var(--vscode-input-placeholderForeground);
-        }
-        .filter-checkbox {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            user-select: none;
-            white-space: nowrap;
-        }
-        .filter-checkbox input[type="checkbox"] {
-            cursor: pointer;
-            width: 16px;
-            height: 16px;
-        }
-        .filter-checkbox span {
-            font-size: 14px;
-        }
-    </style>
-</head>
-<body>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1 style="margin: 0;">🪗 ORGanetto</h1>
-        <button class="refresh-button" onclick="refreshOrgs()">🔄 Refresh</button>
-    </div>
-    ${orgsHtml}
-    <script>
-        const vscode = acquireVsCodeApi();
-        let currentSort = { column: null, ascending: true };
-        
-        function refreshOrgs() {
-            vscode.postMessage({ command: 'refresh' });
-        }
-        
-        function openOrg(alias) {
-            vscode.postMessage({ command: 'openOrg', alias: alias });
-        }
-        
-        function logoutOrg(alias) {
-            vscode.postMessage({ command: 'logoutOrg', alias: alias });
-        }
-        
-        function getAuthUrl(alias) {
-            vscode.postMessage({ command: 'getAuthUrl', alias: alias });
-        }
-        
-        function applyFilter() {
-            const hideDisconnected = document.getElementById('hideDisconnected').checked;
-            const searchText = document.getElementById('searchInput').value.toLowerCase();
-            const rows = document.querySelectorAll('.org-row');
-            
-            rows.forEach(row => {
-                const isConnected = row.getAttribute('data-connected') === 'true';
-                const alias = row.getAttribute('data-alias');
-                
-                // Check if should hide based on connection status
-                const hideByConnection = hideDisconnected && !isConnected;
-                
-                // Check if should hide based on search text
-                const hideBySearch = searchText && !alias.includes(searchText);
-                
-                if (hideByConnection || hideBySearch) {
-                    row.style.display = 'none';
-                } else {
-                    row.style.display = '';
-                }
-            });
-        }
-        
-        function sortTable(column) {
-            const tbody = document.getElementById('orgs-table-body');
-            const rows = Array.from(tbody.getElementsByClassName('org-row'));
-            
-            // Toggle sort direction if clicking the same column
-            if (currentSort.column === column) {
-                currentSort.ascending = !currentSort.ascending;
-            } else {
-                currentSort.column = column;
-                currentSort.ascending = true;
-            }
-            
-            // Sort rows
-            rows.sort((a, b) => {
-                let aVal, bVal;
-                
-                switch(column) {
-                    case 'alias':
-                        aVal = a.getAttribute('data-alias');
-                        bVal = b.getAttribute('data-alias');
-                        break;
-                    case 'status':
-                        aVal = a.getAttribute('data-status');
-                        bVal = b.getAttribute('data-status');
-                        break;
-                    case 'lastused':
-                        aVal = a.getAttribute('data-lastused');
-                        bVal = b.getAttribute('data-lastused');
-                        // Sort by date, with empty values (Never) at the end
-                        if (!aVal && !bVal) return 0;
-                        if (!aVal) return 1;
-                        if (!bVal) return -1;
-                        return currentSort.ascending ? 
-                            new Date(bVal) - new Date(aVal) : 
-                            new Date(aVal) - new Date(bVal);
-                }
-                
-                // String comparison for alias and status
-                if (column !== 'lastused') {
-                    if (aVal < bVal) return currentSort.ascending ? -1 : 1;
-                    if (aVal > bVal) return currentSort.ascending ? 1 : -1;
-                    return 0;
-                }
-                
-                return 0;
-            });
-            
-            // Reorder DOM elements
-            rows.forEach(row => tbody.appendChild(row));
-            
-            // Update sort indicators
-            document.querySelectorAll('.sort-indicator').forEach(el => el.textContent = '');
-            const indicator = document.getElementById('sort-' + column);
-            if (indicator) {
-                indicator.textContent = currentSort.ascending ? ' ▲' : ' ▼';
-            }
-            
-            // Reapply filter after sorting
-            applyFilter();
-        }
-        
-        // Listen for messages from the extension
-        window.addEventListener('message', event => {
-            const message = event.data;
-            
-            switch (message.command) {
-                case 'removeOrg':
-                    // Find and remove the row with matching alias
-                    const rows = document.querySelectorAll('.org-row');
-                    rows.forEach(row => {
-                        const alias = row.getAttribute('data-alias');
-                        if (alias === message.alias.toLowerCase()) {
-                            row.remove();
-                        }
-                    });
-                    break;
-            }
-        });
-        
-        // Focus search box when typing anywhere
-        document.addEventListener('keydown', (e) => {
-            const searchInput = document.getElementById('searchInput');
-            const activeElement = document.activeElement;
-            
-            // Don't interfere if already focused on an input or if it's a special key
-            if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
-                return;
-            }
-            
-            // Ignore special keys like Ctrl, Alt, Cmd, Tab, Escape, etc.
-            if (e.ctrlKey || e.metaKey || e.altKey || 
-                e.key === 'Tab' || e.key === 'Escape' || e.key === 'Enter' ||
-                e.key === 'ArrowUp' || e.key === 'ArrowDown' || 
-                e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-                return;
-            }
-            
-            // Focus search input for regular character keys
-            if (e.key.length === 1 && searchInput) {
-                searchInput.focus();
-            }
-        });
-        
-        // Apply filter and default sort on page load
-        window.addEventListener('DOMContentLoaded', () => {
-            // Sort by last used date by default (most recent first)
-            sortTable('lastused');
-            applyFilter();
-        });
-    </script>
-</body>
-</html>`;
+		// Replace placeholders in template
+		return template
+			.replace('{{STYLES}}', styles)
+			.replace('{{CONTENT}}', orgsHtml);
 	}
 
 	context.subscriptions.push(disposable);

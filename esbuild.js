@@ -1,7 +1,36 @@
 const esbuild = require('esbuild');
+const fs = require('fs');
+const path = require('path');
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
+
+// Copy webview assets
+function copyWebviewAssets() {
+  const srcDir = path.join(__dirname, 'src', 'webview');
+  const distDir = path.join(__dirname, 'dist', 'webview');
+  const outDir = path.join(__dirname, 'out', 'webview');
+
+  // Create directories if they don't exist
+  if (!fs.existsSync(distDir)) {
+    fs.mkdirSync(distDir, { recursive: true });
+  }
+  if (!fs.existsSync(outDir)) {
+    fs.mkdirSync(outDir, { recursive: true });
+  }
+
+  // Copy files to both dist and out directories
+  const files = fs.readdirSync(srcDir);
+  files.forEach(file => {
+    const srcFile = path.join(srcDir, file);
+    if (fs.statSync(srcFile).isFile()) {
+      fs.copyFileSync(srcFile, path.join(distDir, file));
+      fs.copyFileSync(srcFile, path.join(outDir, file));
+    }
+  });
+
+  console.log('[copy] webview assets copied to dist/ and out/');
+}
 
 async function main() {
   const ctx = await esbuild.context({
@@ -26,6 +55,9 @@ async function main() {
     await ctx.rebuild();
     await ctx.dispose();
   }
+  
+  // Copy webview assets after build
+  copyWebviewAssets();
 }
 
 /**

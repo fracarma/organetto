@@ -22,7 +22,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "compile": "tsc -p ./ && node -e \"const fs=require('fs');const path=require('path');const src='src/webview';const dst='out/webview';if(!fs.existsSync(dst))fs.mkdirSync(dst,{recursive:true});fs.readdirSync(src).forEach(f=>{if(fs.statSync(path.join(src,f)).isFile())fs.copyFileSync(path.join(src,f),path.join(dst,f))});console.log('Webview assets copied to out/')\"",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",

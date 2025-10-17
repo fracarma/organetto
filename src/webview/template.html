@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORGanetto - Salesforce Orgs</title>
+    <style>{{STYLES}}</style>
+</head>
+<body>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1 style="margin: 0;">🪗 ORGanetto</h1>
+        <button class="refresh-button" onclick="refreshOrgs()">🔄 Refresh</button>
+    </div>
+    {{CONTENT}}
+    <script>
+        const vscode = acquireVsCodeApi();
+        let currentSort = { column: null, ascending: true };
+        
+        function refreshOrgs() {
+            vscode.postMessage({ command: 'refresh' });
+        }
+        
+        function openOrg(alias) {
+            vscode.postMessage({ command: 'openOrg', alias: alias });
+        }
+        
+        function logoutOrg(alias) {
+            vscode.postMessage({ command: 'logoutOrg', alias: alias });
+        }
+        
+        function getAuthUrl(alias) {
+            vscode.postMessage({ command: 'getAuthUrl', alias: alias });
+        }
+        
+        function applyFilter() {
+            const hideDisconnected = document.getElementById('hideDisconnected').checked;
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('.org-row');
+            
+            rows.forEach(row => {
+                const isConnected = row.getAttribute('data-connected') === 'true';
+                const alias = row.getAttribute('data-alias');
+                
+                // Check if should hide based on connection status
+                const hideByConnection = hideDisconnected && !isConnected;
+                
+                // Check if should hide based on search text
+                const hideBySearch = searchText && !alias.includes(searchText);
+                
+                if (hideByConnection || hideBySearch) {
+                    row.style.display = 'none';
+                } else {
+                    row.style.display = '';
+                }
+            });
+        }
+        
+        function sortTable(column) {
+            const tbody = document.getElementById('orgs-table-body');
+            const rows = Array.from(tbody.getElementsByClassName('org-row'));
+            
+            // Toggle sort direction if clicking the same column
+            if (currentSort.column === column) {
+                currentSort.ascending = !currentSort.ascending;
+            } else {
+                currentSort.column = column;
+                currentSort.ascending = true;
+            }
+            
+            // Sort rows
+            rows.sort((a, b) => {
+                let aVal, bVal;
+                
+                switch(column) {
+                    case 'alias':
+                        aVal = a.getAttribute('data-alias');
+                        bVal = b.getAttribute('data-alias');
+                        break;
+                    case 'status':
+                        aVal = a.getAttribute('data-status');
+                        bVal = b.getAttribute('data-status');
+                        break;
+                    case 'lastused':
+                        aVal = a.getAttribute('data-lastused');
+                        bVal = b.getAttribute('data-lastused');
+                        // Sort by date, with empty values (Never) at the end
+                        if (!aVal && !bVal) return 0;
+                        if (!aVal) return 1;
+                        if (!bVal) return -1;
+                        return currentSort.ascending ? 
+                            new Date(bVal) - new Date(aVal) : 
+                            new Date(aVal) - new Date(bVal);
+                }
+                
+                // String comparison for alias and status
+                if (column !== 'lastused') {
+                    if (aVal < bVal) return currentSort.ascending ? -1 : 1;
+                    if (aVal > bVal) return currentSort.ascending ? 1 : -1;
+                    return 0;
+                }
+                
+                return 0;
+            });
+            
+            // Reorder DOM elements
+            rows.forEach(row => tbody.appendChild(row));
+            
+            // Update sort indicators
+            document.querySelectorAll('.sort-indicator').forEach(el => el.textContent = '');
+            const indicator = document.getElementById('sort-' + column);
+            if (indicator) {
+                indicator.textContent = currentSort.ascending ? ' ▲' : ' ▼';
+            }
+            
+            // Reapply filter after sorting
+            applyFilter();
+        }
+        
+        // Listen for messages from the extension
+        window.addEventListener('message', event => {
+            const message = event.data;
+            
+            switch (message.command) {
+                case 'removeOrg':
+                    // Find and remove the row with matching alias
+                    const rows = document.querySelectorAll('.org-row');
+                    rows.forEach(row => {
+                        const alias = row.getAttribute('data-alias');
+                        if (alias === message.alias.toLowerCase()) {
+                            row.remove();
+                        }
+                    });
+                    break;
+            }
+        });
+        
+        // Focus search box when typing anywhere
+        document.addEventListener('keydown', (e) => {
+            const searchInput = document.getElementById('searchInput');
+            const activeElement = document.activeElement;
+            
+            // Don't interfere if already focused on an input or if it's a special key
+            if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+                return;
+            }
+            
+            // Ignore special keys like Ctrl, Alt, Cmd, Tab, Escape, etc.
+            if (e.ctrlKey || e.metaKey || e.altKey || 
+                e.key === 'Tab' || e.key === 'Escape' || e.key === 'Enter' ||
+                e.key === 'ArrowUp' || e.key === 'ArrowDown' || 
+                e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                return;
+            }
+            
+            // Focus search input for regular character keys
+            if (e.key.length === 1 && searchInput) {
+                searchInput.focus();
+            }
+        });
+        
+        // Apply filter and default sort on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Sort by last used date by default (most recent first)
+            sortTable('lastused');
+            applyFilter();
+        });
+    </script>
+</body>
+</html>
+
