@@ -409,7 +409,6 @@ export function activate(context: vscode.ExtensionContext) {
 			.replace('{{CONTENT}}', orgsHtml);
 	}
 
-	context.subscriptions.push(disposable);
 	context.subscriptions.push(openNewTabDisposable);
 }
 
