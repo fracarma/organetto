@@ -1,71 +1,91 @@
-# organetto README
+# 🪗 ORGanetto
 
-This is the README for your extension "organetto". After writing up a brief description, we recommend including the following sections.
+A Visual Studio Code extension for managing your Salesforce orgs with style and efficiency.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+### 🎯 Quick Org Management
+- **View all your Salesforce orgs** in a clean, sortable table
+- **Open orgs** directly in your browser with one click
+- **Logout from orgs** with confirmation (removes them from your authenticated list)
+- **Track usage** - automatically records when you last opened each org
 
-For example if there is an image subfolder under your extension project workspace:
+### 🔍 Smart Filtering & Search
+- **Text search** - Start typing anywhere to instantly search orgs by alias/username
+- **Connection filter** - Toggle to show/hide disconnected orgs
+- **Live filtering** - Results update as you type
 
-\!\[feature X\]\(images/feature-x.png\)
+### 📊 Sortable Columns
+Click any column header to sort by:
+- **Alias** - Alphabetically by org name
+- **Status** - By connection status
+- **Last Used** - Most recently opened orgs first (default)
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+### 💾 Performance Optimized
+- **Smart caching** - Org list is cached for instant loading
+- **Manual refresh** - Click the refresh button to update from Salesforce CLI
+- **Fast logout** - Removes orgs from the list without full refresh
+
+### ℹ️ Detailed Org Info
+Click on any org alias to view a popover with:
+- Username
+- Org ID
+- Instance URL (clickable)
+- Org Type (Dev Hub, Sandbox, or Production)
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli) installed and configured
+- At least one authenticated Salesforce org
+
+## Usage
+
+1. Open the Command Palette (`Cmd+Shift+P` on Mac, `Ctrl+Shift+P` on Windows/Linux)
+2. Run **"ORGanetto: Show my Salesforce Orgs"**
+3. Your orgs will appear in a new tab
+
+### Keyboard Shortcuts
+- **Start typing** - Automatically focuses the search box
+- **Click column headers** - Sort by that column
+- **Click aliases** - View detailed org information
+
+### Actions
+- **🚀 Open** - Opens the org in your default browser
+- **🚪 Logout** - Logs out from the org (with confirmation)
+- **🔄 Refresh** - Refreshes the org list from Salesforce CLI
+
+## Tips
+
+- The org list is sorted by "Last Used" by default, so your frequently used orgs appear at the top
+- Use the search box to quickly find orgs in large lists
+- Hide disconnected orgs to declutter your view
+- The extension remembers when you last opened each org through ORGanetto
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+This extension doesn't require any configuration. Just install and use!
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+None yet! Please [report any issues](https://github.com/yourusername/organetto/issues) you encounter.
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.0.1
 
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+Initial release of ORGanetto:
+- View all authenticated Salesforce orgs
+- Open orgs in browser
+- Logout from orgs
+- Search and filter orgs
+- Sortable table columns
+- Track last opened date
+- Smart caching for performance
 
 ---
 
-## Following extension guidelines
+## About
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+ORGanetto (named after the small accordion instrument) helps you orchestrate your Salesforce orgs efficiently.
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+**Enjoy!** 🪗
