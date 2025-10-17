@@ -316,11 +316,20 @@ export function activate(context: vscode.ExtensionContext) {
 							const reauthAlias = message.alias;
 							logger.log(`Reauthenticating org: ${reauthAlias}`);
 							
-							// Get the org details to retrieve the instance URL
-							const { stdout } = await execPromise(`sf org display --target-org ${reauthAlias} --json`);
-							const result = JSON.parse(stdout);
-							const instanceUrl = result?.result?.instanceUrl;
+							// Get the org details from cached data
+							const cachedOrgs = context.globalState.get<any[]>('salesforceOrgs') || [];
+							const org = cachedOrgs.find(o => 
+								(o?.alias === reauthAlias) || 
+								(o?.username === reauthAlias)
+							);
 							
+							if (!org) {
+								logger.warn(`Org not found in cache: ${reauthAlias}`);
+								vscode.window.showErrorMessage(`Could not find org ${reauthAlias} in cached data`);
+								break;
+							}
+							
+							const instanceUrl = org.instanceUrl;
 							if (!instanceUrl) {
 								logger.warn(`Instance URL not found for org: ${reauthAlias}`);
 								vscode.window.showErrorMessage(`Could not find instance URL for org ${reauthAlias}`);
