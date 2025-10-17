@@ -8,13 +8,20 @@ import * as fs from 'fs';
 
 const execPromise = promisify(exec);
 
+// Centralized logger with [ORGanetto] prefix
+const logger = {
+	log: (...args: any[]) => console.log('[ORGanetto]', ...args),
+	warn: (...args: any[]) => console.warn('[ORGanetto]', ...args),
+	error: (...args: any[]) => console.error('[ORGanetto]', ...args)
+};
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "organetto" is now active!');
+	logger.log('Congratulations, your extension "organetto" is now active!');
 
 	// Store reference to the webview panel
 	let currentPanel: vscode.WebviewPanel | undefined = undefined;
@@ -24,24 +31,24 @@ export function activate(context: vscode.ExtensionContext) {
 		if (!forceRefresh) {
 			const cachedOrgs = context.globalState.get<any[]>('salesforceOrgs');
 			if (cachedOrgs) {
-				console.log('Using cached org data');
+				logger.log('Using cached org data');
 				return cachedOrgs;
 			}
 		}
 
-		console.log('Fetching fresh org data from SF CLI...');
+		logger.log('Fetching fresh org data from SF CLI...');
 		
 		try {
 			// Execute sf org list command
 			const { stdout, stderr } = await execPromise('sf org list --json');
 			
 			if (stderr) {
-				console.error('Error executing sf org list:', stderr);
+				logger.error('Error executing sf org list:', stderr);
 			}
 
 			// Parse the JSON output
 			const result = JSON.parse(stdout);
-			console.log('Raw result from sf org list:', JSON.stringify(result, null, 2));
+			logger.log('Raw result from sf org list:', JSON.stringify(result, null, 2));
 			
 			// Handle different possible structures
 			let orgs: any[] = [];
@@ -59,26 +66,30 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 			}
 
-			console.log('Parsed orgs:', orgs);
+			logger.log('Parsed orgs:', orgs);
 
 			// Cache the results
 			await context.globalState.update('salesforceOrgs', orgs);
-			console.log('Org data cached successfully');
+			logger.log('Org data cached successfully');
 
 			return orgs;
 		} catch (error) {
-			console.error('Error fetching orgs:', error);
+			logger.error('Error fetching orgs:', error);
 			throw error;
 		}
 	}
 
 	const openNewTabDisposable = vscode.commands.registerCommand('organetto.openNewTab', async () => {
+		logger.log('openNewTab command triggered');
+		
 		// If panel already exists, just reveal it
 		if (currentPanel) {
+			logger.log('Panel already exists, revealing it');
 			currentPanel.reveal(vscode.ViewColumn.One);
 			return;
 		}
 
+		logger.log('Creating new webview panel');
 		// Create a webview panel to display HTML content
 		const panel = vscode.window.createWebviewPanel(
 			'organettoView', // Identifies the type of the webview
@@ -96,6 +107,7 @@ export function activate(context: vscode.ExtensionContext) {
 		// Reset when the panel is closed
 		panel.onDidDispose(
 			() => {
+				logger.log('Panel disposed');
 				currentPanel = undefined;
 			},
 			null,
@@ -103,16 +115,20 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 
 		// Show loading state initially
+		logger.log('Loading initial webview state');
 		const lastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
 		panel.webview.html = getWebviewContent([], lastOpenedTimes, false);
 
 		try {
+			logger.log('Fetching Salesforce orgs');
 			// Fetch orgs (from cache or fresh)
 			const orgs = await fetchAndCacheOrgs(false);
+			logger.log(`Successfully fetched ${orgs.length} orgs`);
 
 			// Update the webview with org data
 			panel.webview.html = getWebviewContent(orgs, lastOpenedTimes, false);
 		} catch (error) {
+			logger.error('Error fetching Salesforce orgs:', error);
 			vscode.window.showErrorMessage(`Failed to fetch Salesforce orgs: ${error}`);
 			panel.webview.html = getWebviewContent([], lastOpenedTimes, false, `Error: ${error}`);
 		}
@@ -120,15 +136,20 @@ export function activate(context: vscode.ExtensionContext) {
 		// Handle messages from the webview (e.g., refresh button, open org)
 		panel.webview.onDidReceiveMessage(
 			async message => {
+				logger.log(`Received message from webview: ${message.command}`);
+				
 				switch (message.command) {
 					case 'refresh':
+						logger.log('Refreshing org list');
 						try {
 							const refreshLastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
 							panel.webview.html = getWebviewContent([], refreshLastOpenedTimes, true);
 							const orgs = await fetchAndCacheOrgs(true);
 							panel.webview.html = getWebviewContent(orgs, refreshLastOpenedTimes, false);
 							vscode.window.showInformationMessage('Org list refreshed!');
+							logger.log('Org list refresh completed successfully');
 						} catch (error) {
+							logger.error('Error refreshing org list:', error);
 							vscode.window.showErrorMessage(`Failed to refresh orgs: ${error}`);
 							const errorLastOpenedTimes = context.globalState.get<Record<string, string>>('orgLastOpenedTimes') || {};
 							panel.webview.html = getWebviewContent([], errorLastOpenedTimes, false, `Error: ${error}`);
@@ -137,6 +158,7 @@ export function activate(context: vscode.ExtensionContext) {
 					case 'openOrg':
 						try {
 							const alias = message.alias;
+							logger.log(`Opening org: ${alias}`);
 							vscode.window.showInformationMessage(`Opening org: ${alias}...`);
 							await execPromise(`sf org open -o ${alias}`);
 							
@@ -146,16 +168,19 @@ export function activate(context: vscode.ExtensionContext) {
 							await context.globalState.update('orgLastOpenedTimes', lastOpenedTimes);
 							
 							vscode.window.showInformationMessage(`Org ${alias} opened successfully!`);
+							logger.log(`Org ${alias} opened successfully`);
 							
 							// Refresh the view to show updated last opened time
 							const orgs = await fetchAndCacheOrgs(false);
 							panel.webview.html = getWebviewContent(orgs, lastOpenedTimes, false);
 						} catch (error) {
+							logger.error(`Error opening org ${message.alias}:`, error);
 							vscode.window.showErrorMessage(`Failed to open org: ${error}`);
 						}
 						break;
 					case 'logoutOrg':
 						const logoutAlias = message.alias;
+						logger.log(`Logout requested for org: ${logoutAlias}`);
 						const confirmation = await vscode.window.showWarningMessage(
 							`Are you sure you want to log out of the org "${logoutAlias}"?`,
 							{ modal: true },
@@ -164,6 +189,7 @@ export function activate(context: vscode.ExtensionContext) {
 						);
 						
 						if (confirmation === 'Logout') {
+							logger.log(`Logout confirmed for org: ${logoutAlias}`);
 							try {
 								vscode.window.showInformationMessage(`Logging out of org: ${logoutAlias}...`);
 								await execPromise(`sf org logout --target-org ${logoutAlias} --no-prompt`);
@@ -181,17 +207,22 @@ export function activate(context: vscode.ExtensionContext) {
 								await context.globalState.update('salesforceOrgs', updatedOrgs);
 								
 								vscode.window.showInformationMessage(`Logged out of org ${logoutAlias} successfully!`);
+								logger.log(`Successfully logged out of org: ${logoutAlias}`);
 								
 								// Tell webview to remove the row
 								panel.webview.postMessage({ command: 'removeOrg', alias: logoutAlias });
 							} catch (error) {
+								logger.error(`Error logging out of org ${logoutAlias}:`, error);
 								vscode.window.showErrorMessage(`Failed to logout of org: ${error}`);
 							}
+						} else {
+							logger.log(`Logout cancelled for org: ${logoutAlias}`);
 						}
 						break;
 					case 'getAuthUrl':
 						try {
 							const authAlias = message.alias;
+							logger.log(`Retrieving Auth URL for org: ${authAlias}`);
 							vscode.window.showInformationMessage(`Retrieving Auth URL for org: ${authAlias}...`);
 							const { stdout } = await execPromise(`sf org display --target-org ${authAlias} --verbose --json`);
 							
@@ -200,6 +231,7 @@ export function activate(context: vscode.ExtensionContext) {
 							const authUrl = result?.result?.sfdxAuthUrl;
 							
 							if (authUrl) {
+								logger.log(`Successfully retrieved Auth URL for org: ${authAlias}`);
 								// Copy to clipboard automatically
 								await vscode.env.clipboard.writeText(authUrl);
 								
@@ -213,9 +245,11 @@ export function activate(context: vscode.ExtensionContext) {
 								
 								vscode.window.showInformationMessage(`Auth URL copied to clipboard!`);
 							} else {
+								logger.warn(`Auth URL not found in response for org: ${authAlias}`);
 								vscode.window.showErrorMessage(`Could not find Auth URL in the response for org ${authAlias}`);
 							}
 						} catch (error) {
+							logger.error(`Error retrieving Auth URL for org ${message.alias}:`, error);
 							vscode.window.showErrorMessage(`Failed to get Auth URL: ${error}`);
 						}
 						break;
@@ -227,6 +261,8 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	function getWebviewContent(orgs: any[], lastOpenedTimes: Record<string, string>, isRefreshing: boolean, error?: string): string {
+		logger.log(`getWebviewContent called with ${orgs.length} orgs, isRefreshing: ${isRefreshing}, error: ${error || 'none'}`);
+		
 		// Read template and CSS files
 		// Try different locations depending on build mode (src for dev, out for tsc, dist for esbuild)
 		let templatePath: string;
@@ -239,14 +275,17 @@ export function activate(context: vscode.ExtensionContext) {
 			if (fs.existsSync(testPath)) {
 				templatePath = testPath;
 				stylesPath = path.join(context.extensionPath, dir, 'webview', 'styles.css');
+				logger.log(`Found webview files in ${dir}/ directory`);
 				break;
 			}
 		}
 		
 		if (!templatePath! || !stylesPath!) {
+			logger.error('Could not find webview template files in any of the expected directories');
 			throw new Error('Could not find webview template files');
 		}
 		
+		logger.log('Reading template and styles files');
 		const template = fs.readFileSync(templatePath, 'utf8');
 		const styles = fs.readFileSync(stylesPath, 'utf8');
 		
@@ -403,10 +442,19 @@ export function activate(context: vscode.ExtensionContext) {
 			</script>
 			`;
 
+		// Log warnings for edge cases
+		if (orgs.length === 0 && !error && !isRefreshing) {
+			logger.warn('No orgs found in the system');
+		}
+
+		logger.log('Generating final HTML by replacing template placeholders');
 		// Replace placeholders in template
-		return template
+		const finalHtml = template
 			.replace('{{STYLES}}', styles)
 			.replace('{{CONTENT}}', orgsHtml);
+		
+		logger.log(`Successfully generated webview content (${finalHtml.length} characters)`);
+		return finalHtml;
 	}
 
 	context.subscriptions.push(openNewTabDisposable);
