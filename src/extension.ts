@@ -355,7 +355,7 @@ export function activate(context: vscode.ExtensionContext) {
 							data-lastused="${lastOpenedTimes[orgKey] || ''}">
 							<td>
 								<strong class="org-alias" data-org-index="${index}">
-									${org.alias || org.username || '-'}
+									${org.alias || org.username || '-'} <span style="opacity: 0.6; font-size: 0.9em;">ℹ️</span>
 								</strong>
 							</td>
 							<td><span class="badge ${org.connectedStatus || ''}">${org.connectedStatus || '-'}</span></td>
