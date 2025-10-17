@@ -184,8 +184,7 @@ export function activate(context: vscode.ExtensionContext) {
 						const confirmation = await vscode.window.showWarningMessage(
 							`Are you sure you want to log out of the org "${logoutAlias}"?`,
 							{ modal: true },
-							'Logout',
-							'Cancel'
+							'Logout'
 						);
 						
 						if (confirmation === 'Logout') {
