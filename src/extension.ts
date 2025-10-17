@@ -753,8 +753,12 @@ export function activate(context: vscode.ExtensionContext) {
             }
         });
         
-        // Apply filter on page load
-        window.addEventListener('DOMContentLoaded', applyFilter);
+        // Apply filter and default sort on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Sort by last used date by default (most recent first)
+            sortTable('lastused');
+            applyFilter();
+        });
     </script>
 </body>
 </html>`;
