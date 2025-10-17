@@ -540,10 +540,30 @@ export function activate(context: vscode.ExtensionContext) {
 					}
 					document.getElementById('popover-type').textContent = orgType;
 					
-					// Position and show popover
+					// Show popover temporarily to get its height
 					popover.style.display = 'block';
-					popover.style.top = rect.bottom + 10 + 'px';
+					popover.style.visibility = 'hidden';
+					
+					// Calculate available space
+					const popoverHeight = popover.offsetHeight;
+					const viewportHeight = window.innerHeight;
+					const spaceBelow = viewportHeight - rect.bottom;
+					const spaceAbove = rect.top;
+					const margin = 10;
+					
+					// Determine if popover should be positioned above or below
+					const shouldPositionAbove = spaceBelow < popoverHeight + margin && spaceAbove > spaceBelow;
+					
+					// Position popover
+					if (shouldPositionAbove) {
+						popover.style.top = (rect.top - popoverHeight - margin) + 'px';
+					} else {
+						popover.style.top = (rect.bottom + margin) + 'px';
+					}
 					popover.style.left = rect.left + 'px';
+					
+					// Make popover visible
+					popover.style.visibility = 'visible';
 				}
 				
 				// Add click handlers to aliases
