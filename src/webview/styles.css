@@ -291,3 +291,58 @@ code {
     font-size: 14px;
 }
 
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-toggle {
+    font-size: 13px;
+    padding: 6px 10px;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 4px;
+    background-color: var(--vscode-menu-background);
+    border: 1px solid var(--vscode-menu-border);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    min-width: 160px;
+    z-index: 1000;
+    padding: 4px 0;
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+.dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 8px 16px;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--vscode-menu-foreground);
+    cursor: pointer;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.dropdown-item:hover {
+    background-color: var(--vscode-menu-selectionBackground);
+    color: var(--vscode-menu-selectionForeground);
+}
+
+.dropdown-item:active {
+    transform: none;
+}
+
+.logout-item {
+    color: var(--vscode-editorWarning-foreground);
+}
+

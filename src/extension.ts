@@ -253,6 +253,19 @@ export function activate(context: vscode.ExtensionContext) {
 							vscode.window.showErrorMessage(`Failed to get Auth URL: ${error}`);
 						}
 						break;
+					case 'setDefaultOrg':
+						try {
+							const defaultAlias = message.alias;
+							logger.log(`Setting default org to: ${defaultAlias}`);
+							vscode.window.showInformationMessage(`Setting default org to: ${defaultAlias}...`);
+							await execPromise(`sf config set target-org ${defaultAlias}`);
+							vscode.window.showInformationMessage(`Default org set to ${defaultAlias} successfully!`);
+							logger.log(`Successfully set default org to: ${defaultAlias}`);
+						} catch (error) {
+							logger.error(`Error setting default org to ${message.alias}:`, error);
+							vscode.window.showErrorMessage(`Failed to set default org: ${error}`);
+						}
+						break;
 				}
 			},
 			undefined,
@@ -363,8 +376,14 @@ export function activate(context: vscode.ExtensionContext) {
 							<td>
 								<div class="action-buttons">
 									<button class="action-button" onclick="openOrg('${org.alias || org.username}')">🚀 Open</button>
-									<button class="action-button auth-url-button" onclick="getAuthUrl('${org.alias || org.username}')">🔑 Auth URL</button>
-									<button class="action-button logout-button" onclick="logoutOrg('${org.alias || org.username}')">🚪 Logout</button>
+									<div class="dropdown">
+										<button class="action-button dropdown-toggle" onclick="toggleDropdown(event, ${index})">⋯</button>
+										<div class="dropdown-menu" id="dropdown-${index}">
+											<button class="dropdown-item" onclick="setDefaultOrg('${org.alias || org.username}')">⭐ Set Default</button>
+											<button class="dropdown-item" onclick="getAuthUrl('${org.alias || org.username}')">🔑 Auth URL</button>
+											<button class="dropdown-item logout-item" onclick="logoutOrg('${org.alias || org.username}')">🚪 Logout</button>
+										</div>
+									</div>
 								</div>
 							</td>
 						</tr>

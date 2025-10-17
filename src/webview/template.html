@@ -35,6 +35,26 @@
             vscode.postMessage({ command: 'getAuthUrl', alias: alias });
         }
         
+        function setDefaultOrg(alias) {
+            vscode.postMessage({ command: 'setDefaultOrg', alias: alias });
+        }
+        
+        function toggleDropdown(event, index) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('dropdown-' + index);
+            const isOpen = dropdown.classList.contains('show');
+            
+            // Close all dropdowns first
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                menu.classList.remove('show');
+            });
+            
+            // Toggle the clicked dropdown
+            if (!isOpen) {
+                dropdown.classList.add('show');
+            }
+        }
+        
         function applyFilter() {
             const hideDisconnected = document.getElementById('hideDisconnected').checked;
             const searchText = document.getElementById('searchInput').value.toLowerCase();
@@ -134,6 +154,15 @@
                         }
                     });
                     break;
+            }
+        });
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.dropdown')) {
+                document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                    menu.classList.remove('show');
+                });
             }
         });
         
