@@ -19,18 +19,6 @@ export function activate(context: vscode.ExtensionContext) {
 	// Store reference to the webview panel
 	let currentPanel: vscode.WebviewPanel | undefined = undefined;
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('organetto.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		console.log('log level from ORGanetto!');
-		console.warn('warn level from ORGanetto!');
-		console.error('error level from ORGanetto!');
-		vscode.window.showInformationMessage('Hello World from ORGanetto!');
-	});
-
 	async function fetchAndCacheOrgs(forceRefresh: boolean = false): Promise<any[]> {
 		// Check if we have cached data and don't need to force refresh
 		if (!forceRefresh) {
