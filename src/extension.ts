@@ -160,7 +160,7 @@ export function activate(context: vscode.ExtensionContext) {
                                         context.globalState.get<Record<string, string>>("orgLastOpenedTimes") || {};
                                     panel.webview.html = getWebviewContent([], refreshLastOpenedTimes, true);
 
-                                    progress.report({ increment: 50, message: "Fetching orgs..." });
+                                    progress.report({ message: "Fetching orgs..." });
                                     const orgs = await fetchAndCacheOrgs(true);
                                     panel.webview.html = getWebviewContent(orgs, refreshLastOpenedTimes, false);
 
@@ -367,7 +367,7 @@ export function activate(context: vscode.ExtensionContext) {
                                         `sf org login web --alias ${reauthAlias} --instance-url ${instanceUrl}`,
                                     );
 
-                                    progress.report({ increment: 50, message: "Refreshing org list..." });
+                                    progress.report({ message: "Refreshing org list..." });
                                     logger.log(`Successfully reauthenticated org: ${reauthAlias}`);
 
                                     // Refresh the org list to show updated status
@@ -539,8 +539,8 @@ export function activate(context: vscode.ExtensionContext) {
                             data-status="${org.connectedStatus || ""}"
                             data-lastused="${lastOpenedTimes[orgKey] || ""}">
                             <td>
-                                <span class="org-type-icon" title="${org.isScratch ? "Scratch Org" : org.isDevHub ? "Dev Hub" : org.isSandbox ? "Sandbox" : "Production"}">
-                                    ${org.isScratch ? "⚡" : org.isDevHub ? "🔧" : org.isSandbox ? "🧪" : "🏢"}
+                                <span class="org-type-icon" title="${org.isScratch ? "Scratch Org" : org.isDevHub ? "Dev Hub" : org.isSandbox ? "Sandbox" : "Unknown"}">
+                                    ${org.isScratch ? "⚡" : org.isDevHub ? "🔧" : org.isSandbox ? "🧪" : "❔"}
                                 </span>
                             </td>
                             <td>
@@ -615,7 +615,7 @@ export function activate(context: vscode.ExtensionContext) {
                     document.getElementById('popover-url').href = org.instanceUrl || '#';
                     
                     // Determine org type
-                    let orgType = '🏢 Production';
+                    let orgType = '❔ Unknown';
                     if (org.isScratch) {
                         orgType = '⚡ Scratch Org';
                     } else if (org.isDevHub) {
@@ -789,41 +789,112 @@ export function activate(context: vscode.ExtensionContext) {
         const command = `sf org login web --alias ${alias} --instance-url ${instanceUrl}`;
         logger.log(`Executing command: ${command}`);
 
-        // Create and execute a task to run the authentication
-        const task = new vscode.Task(
-            { type: "shell", task: "sf-org-login" },
-            vscode.TaskScope.Workspace,
-            `Add Salesforce Org: ${alias}`,
-            "ORGanetto",
-            new vscode.ShellExecution(command),
-        );
+        // Show progress notification
+        await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: `Authenticating org: ${alias}`,
+                cancellable: false,
+            },
+            async (progress) => {
+                progress.report({ message: "Opening browser for authentication..." });
 
-        // Execute the task
-        await vscode.tasks.executeTask(task);
+                // Create and execute a task to run the authentication
+                const task = new vscode.Task(
+                    { type: "shell", task: "sf-org-login" },
+                    vscode.TaskScope.Workspace,
+                    `Add Salesforce Org: ${alias}`,
+                    "ORGanetto",
+                    new vscode.ShellExecution(command),
+                );
 
-        // Listen for task completion
-        const taskEndListener = vscode.tasks.onDidEndTask(async (e) => {
-            if (e.execution.task === task) {
-                logger.log(`Task completed for org: ${alias}`);
-                taskEndListener.dispose();
+                // Execute the task
+                const execution = await vscode.tasks.executeTask(task);
 
-                // Show success message
-                vscode.window.showInformationMessage(`Successfully authenticated org: ${alias}`);
+                // Wait for task completion
+                await new Promise<void>((resolve, reject) => {
+                    const taskEndListener = vscode.tasks.onDidEndTask(async (e) => {
+                        if (e.execution === execution) {
+                            logger.log(`Task completed for org: ${alias}`);
+                            taskEndListener.dispose();
+                            resolve();
+                        }
+                    });
 
-                // Refresh the org list if the webview is open
-                if (currentPanel) {
-                    logger.log("Refreshing org list in webview");
-                    try {
-                        const orgs = await fetchAndCacheOrgs(true);
+                    const taskErrorListener = vscode.tasks.onDidEndTaskProcess(async (e) => {
+                        if (e.execution === execution && e.exitCode !== 0) {
+                            logger.error(`Task failed for org: ${alias} with exit code ${e.exitCode}`);
+                            taskErrorListener.dispose();
+                            reject(new Error(`Authentication failed with exit code ${e.exitCode}`));
+                        }
+                    });
+                });
+
+                progress.report({ message: "Fetching org details..." });
+
+                try {
+                    // Use sf org display to get the new org details
+                    const { stdout } = await execPromise(`sf org display --target-org ${alias} --json`);
+                    const displayResult = JSON.parse(stdout);
+                    const newOrg = displayResult?.result;
+
+                    if (newOrg) {
+                        logger.log("Successfully fetched new org details:", newOrg);
+
+                        // Set the connection status to "Connected" since we just authenticated
+                        newOrg.connectedStatus = "Connected";
+
+                        // Add to cached org list
+                        const cachedOrgs = context.globalState.get<any[]>("salesforceOrgs") || [];
+                        
+                        // Check if org already exists and remove it to avoid duplicates
+                        const filteredOrgs = cachedOrgs.filter(
+                            (org) => (org.alias || org.username) !== alias
+                        );
+                        
+                        // Add the new org to the beginning of the list
+                        filteredOrgs.unshift(newOrg);
+                        await context.globalState.update("salesforceOrgs", filteredOrgs);
+
+                        // Set last opened time to NOW
                         const lastOpenedTimes =
                             context.globalState.get<Record<string, string>>("orgLastOpenedTimes") || {};
-                        currentPanel.webview.html = getWebviewContent(orgs, lastOpenedTimes, false);
-                    } catch (error) {
-                        logger.error("Error refreshing org list after adding org:", error);
+                        lastOpenedTimes[alias] = new Date().toISOString();
+                        await context.globalState.update("orgLastOpenedTimes", lastOpenedTimes);
+
+                        progress.report({ increment: 100, message: "Success!" });
+                        logger.log(`Successfully added org: ${alias}`);
+
+                        // Update the webview if it's open
+                        if (currentPanel) {
+                            logger.log("Updating webview with new org");
+                            currentPanel.webview.html = getWebviewContent(filteredOrgs, lastOpenedTimes, false);
+                        }
+
+                        vscode.window.showInformationMessage(`Successfully authenticated org: ${alias}`);
+                    } else {
+                        throw new Error("Could not find org in org list");
+                    }
+                } catch (error) {
+                    logger.error("Error fetching org details after authentication:", error);
+                    vscode.window.showErrorMessage(
+                        `Authentication completed, but failed to fetch org details: ${error}`
+                    );
+                    
+                    // Fall back to full refresh
+                    if (currentPanel) {
+                        try {
+                            const orgs = await fetchAndCacheOrgs(true);
+                            const lastOpenedTimes =
+                                context.globalState.get<Record<string, string>>("orgLastOpenedTimes") || {};
+                            currentPanel.webview.html = getWebviewContent(orgs, lastOpenedTimes, false);
+                        } catch (refreshError) {
+                            logger.error("Error refreshing org list:", refreshError);
+                        }
                     }
                 }
             }
-        });
+        );
     });
 
     context.subscriptions.push(openNewTabDisposable, addOrgDisposable);
