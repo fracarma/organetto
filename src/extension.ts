@@ -15,6 +15,20 @@ const logger = {
     error: (...args: any[]) => console.error("[ORGanetto]", ...args),
 };
 
+// Helper function to determine if an org is a sandbox based on instance URL
+function setProdOrSandbox(org: any): void {
+    if (org.instanceUrl) {
+        const url = org.instanceUrl.toLowerCase();
+        if (url.includes('.sandbox.')) {
+            org.ProdOrSandbox = 'Sandbox';
+        } else {
+            org.ProdOrSandbox = 'Production';
+        }
+    } else {
+        org.ProdOrSandbox = 'Unknown';
+    }
+}
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -69,6 +83,9 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
             logger.log("Parsed orgs:", orgs);
+
+            // Set ProdOrSandbox property for each org
+            orgs.forEach((org) => setProdOrSandbox(org));
 
             // Cache the results
             await context.globalState.update("salesforceOrgs", orgs);
@@ -539,8 +556,8 @@ export function activate(context: vscode.ExtensionContext) {
                             data-status="${org.connectedStatus || ""}"
                             data-lastused="${lastOpenedTimes[orgKey] || ""}">
                             <td>
-                                <span class="org-type-icon" title="${org.isScratch ? "Scratch Org" : org.isDevHub ? "Dev Hub" : org.isSandbox ? "Sandbox" : "Unknown"}">
-                                    ${org.isScratch ? "⚡" : org.isDevHub ? "🔧" : org.isSandbox ? "🧪" : "❔"}
+                                <span class="org-type-icon" title="${org.isScratch ? "Scratch Org" : org.ProdOrSandbox === "Production" ? "Production" : ""}">
+                                    ${org.isScratch ? "⚡" : org.ProdOrSandbox === "Production" ? "❗" : ""}
                                 </span>
                             </td>
                             <td>
@@ -843,6 +860,9 @@ export function activate(context: vscode.ExtensionContext) {
 
                         // Set the connection status to "Connected" since we just authenticated
                         newOrg.connectedStatus = "Connected";
+
+                        // Set ProdOrSandbox property based on instance URL
+                        setProdOrSandbox(newOrg);
 
                         // Add to cached org list
                         const cachedOrgs = context.globalState.get<any[]>("salesforceOrgs") || [];
