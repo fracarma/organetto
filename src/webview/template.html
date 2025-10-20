@@ -12,7 +12,10 @@
 <body>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h1 style="margin: 0;">🪗 ORGanetto</h1>
-        <button class="refresh-button" onclick="refreshOrgs()">🔄 Refresh</button>
+        <div style="display: flex; gap: 10px;">
+            <button class="refresh-button" onclick="addOrg()">➕ Add Org</button>
+            <button class="refresh-button" onclick="refreshOrgs()">🔄 Refresh</button>
+        </div>
     </div>
     {{CONTENT}}
     <script>
@@ -21,6 +24,10 @@
         
         function refreshOrgs() {
             vscode.postMessage({ command: 'refresh' });
+        }
+        
+        function addOrg() {
+            vscode.postMessage({ command: 'addOrg' });
         }
         
         function openOrg(alias) {

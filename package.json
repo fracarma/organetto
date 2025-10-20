@@ -17,6 +17,10 @@
             {
                 "command": "organetto.openNewTab",
                 "title": "ORGanetto: Show my Salesforce Orgs"
+            },
+            {
+                "command": "organetto.addOrg",
+                "title": "ORGanetto: Add Salesforce Org"
             }
         ]
     },

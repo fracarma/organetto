@@ -141,6 +141,11 @@ export function activate(context: vscode.ExtensionContext) {
                 logger.log(`Received message from webview: ${message.command}`);
 
                 switch (message.command) {
+                    case "addOrg":
+                        logger.log("Add org button clicked in webview");
+                        // Execute the add org command
+                        await vscode.commands.executeCommand("organetto.addOrg");
+                        break;
                     case "refresh":
                         logger.log("Refreshing org list");
                         await vscode.window.withProgress(
@@ -678,7 +683,150 @@ export function activate(context: vscode.ExtensionContext) {
         return finalHtml;
     }
 
-    context.subscriptions.push(openNewTabDisposable);
+    // Register the Add Org command
+    const addOrgDisposable = vscode.commands.registerCommand("organetto.addOrg", async () => {
+        logger.log("addOrg command triggered");
+
+        // Step 1: Ask for org type (Org or DevHub)
+        const orgType = await vscode.window.showQuickPick(
+            [
+                { label: "Org", description: "Regular Salesforce org (production, sandbox, or custom)" },
+                { label: "DevHub", description: "Development Hub for scratch org management" },
+            ],
+            {
+                placeHolder: "Select org type",
+                title: "Add Salesforce Org - Step 1/3: Select Org Type",
+            },
+        );
+
+        if (!orgType) {
+            logger.log("Org type selection cancelled");
+            return;
+        }
+
+        logger.log(`Selected org type: ${orgType.label}`);
+
+        let instanceUrl: string | undefined;
+
+        // Step 2: If Org type, ask for instance URL
+        if (orgType.label === "Org") {
+            const instanceType = await vscode.window.showQuickPick(
+                [
+                    { label: "Production", value: "https://login.salesforce.com" },
+                    { label: "Sandbox", value: "https://test.salesforce.com" },
+                    { label: "Custom", value: "" },
+                ],
+                {
+                    placeHolder: "Select instance type",
+                    title: "Add Salesforce Org - Step 2/3: Select Instance Type",
+                },
+            );
+
+            if (!instanceType) {
+                logger.log("Instance type selection cancelled");
+                return;
+            }
+
+            logger.log(`Selected instance type: ${instanceType.label}`);
+
+            if (instanceType.label === "Custom") {
+                // Ask for custom URL
+                const customUrl = await vscode.window.showInputBox({
+                    prompt: "Enter the custom instance URL",
+                    placeHolder: "https://exciting.sandbox.my.salesforce.com",
+                    title: "Add Salesforce Org - Step 2/3: Enter Custom Instance URL",
+                    validateInput: (value) => {
+                        if (!value) {
+                            return "Instance URL is required";
+                        }
+                        if (!value.startsWith("http://") && !value.startsWith("https://")) {
+                            return "Instance URL must start with http:// or https://";
+                        }
+                        return undefined;
+                    },
+                });
+
+                if (!customUrl) {
+                    logger.log("Custom URL input cancelled");
+                    return;
+                }
+
+                instanceUrl = customUrl;
+            } else {
+                instanceUrl = instanceType.value;
+            }
+        } else {
+            // DevHub uses production login URL
+            instanceUrl = "https://login.salesforce.com";
+        }
+
+        logger.log(`Instance URL: ${instanceUrl}`);
+
+        // Step 3: Ask for alias
+        const alias = await vscode.window.showInputBox({
+            prompt: "Enter an alias for this org",
+            placeHolder: "my-org",
+            title: `Add Salesforce Org - Step 3/3: Enter Alias`,
+            validateInput: (value) => {
+                if (!value) {
+                    return "Alias is required";
+                }
+                if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
+                    return "Alias can only contain letters, numbers, hyphens, and underscores";
+                }
+                return undefined;
+            },
+        });
+
+        if (!alias) {
+            logger.log("Alias input cancelled");
+            return;
+        }
+
+        logger.log(`Alias: ${alias}`);
+
+        // Build the command
+        const command = `sf org login web --alias ${alias} --instance-url ${instanceUrl}`;
+        logger.log(`Executing command: ${command}`);
+
+        // Create and execute a task to run the authentication
+        const task = new vscode.Task(
+            { type: "shell", task: "sf-org-login" },
+            vscode.TaskScope.Workspace,
+            `Add Salesforce Org: ${alias}`,
+            "ORGanetto",
+            new vscode.ShellExecution(command),
+        );
+
+        // Execute the task
+        await vscode.tasks.executeTask(task);
+
+        // Listen for task completion
+        const taskEndListener = vscode.tasks.onDidEndTask(async (e) => {
+            if (e.execution.task === task) {
+                logger.log(`Task completed for org: ${alias}`);
+                taskEndListener.dispose();
+
+                // Show success message
+                vscode.window.showInformationMessage(`Successfully authenticated org: ${alias}`);
+
+                // Refresh the org list if the webview is open
+                if (currentPanel) {
+                    logger.log("Refreshing org list in webview");
+                    try {
+                        const orgs = await fetchAndCacheOrgs(true);
+                        const lastOpenedTimes =
+                            context.globalState.get<Record<string, string>>("orgLastOpenedTimes") || {};
+                        currentPanel.webview.html = getWebviewContent(orgs, lastOpenedTimes, false);
+                    } catch (error) {
+                        logger.error("Error refreshing org list after adding org:", error);
+                    }
+                }
+            }
+        });
+    });
+
+    context.subscriptions.push(openNewTabDisposable, addOrgDisposable);
 }
 
 // This method is called when your extension is deactivated
