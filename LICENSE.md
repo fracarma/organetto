@@ -20,3 +20,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+The ORGanetto logo is a derivative of the Accordion emoji. For the actual extension icon we made use of the [Accordion](https://openmoji.org/library/emoji-1FA97/) icon created by [Liz Bravo](https://openmoji.org/library/#author=Liz%20Bravo)
+
+
