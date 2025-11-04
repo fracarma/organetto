@@ -509,9 +509,12 @@ export function activate(context: vscode.ExtensionContext) {
             <table>
                 <thead>
                     <tr>
-                        <th>Type</th>
+                        <th>Prod</th>
                         <th class="sortable" onclick="sortTable('alias')">
                             Alias <span class="sort-indicator" id="sort-alias"></span>
+                        </th>
+                        <th class="sortable" onclick="sortTable('instanceUrl')">
+                            URL <span class="sort-indicator" id="sort-instanceUrl"></span>
                         </th>
                         <th class="sortable" onclick="sortTable('status')">
                             Status <span class="sort-indicator" id="sort-status"></span>
@@ -565,6 +568,7 @@ export function activate(context: vscode.ExtensionContext) {
                                     ${org.alias || org.username || "-"} <span style="opacity: 0.6; font-size: 0.9em;">ℹ️</span>
                                 </strong>
                             </td>
+                            <td><a href="" onclick="openOrg('${org.alias || org.username}')">${org.instanceUrl || "-"}</a></td>
                             <td><span class="badge ${org.connectedStatus || ""}">${org.connectedStatus || "-"}</span></td>
                             <td>${lastUsedText}</td>
                             <td>
