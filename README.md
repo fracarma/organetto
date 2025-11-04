@@ -1,14 +1,22 @@
 # 🪗 ORGanetto
 
-A Visual Studio Code extension for managing your Salesforce orgs with style and efficiency.
+A Visual Studio Code extension for managing your Salesforce orgs with style and efficiency. Perfect for developers juggling multiple Salesforce environments!
 
-## Features
+Click the 🪗 icon for instant access!
+
+## ✨ Features
 
 ### 🎯 Quick Org Management
 - **View all your Salesforce orgs** in a clean, sortable table
 - **Open orgs** directly in your browser with one click
+- **Add new orgs** with a guided authentication flow
+- **Set default org** for your workspace
+
+### 🔐 Authentication & Security
+- **Reauthenticate** disconnected orgs without losing data
+- **Get Auth URL** - Copy SFDX Auth URL to clipboard for CI/CD or team sharing
 - **Logout from orgs** with confirmation (removes them from your authenticated list)
-- **Track usage** - automatically records when you last opened each org
+- **Multi-org support** - Manage Production, Sandbox, Scratch, and Dev Hub orgs
 
 ### 🔍 Smart Filtering & Search
 - **Text search** - Start typing anywhere to instantly search orgs by alias/username
@@ -18,58 +26,100 @@ A Visual Studio Code extension for managing your Salesforce orgs with style and 
 ### 📊 Sortable Columns
 Click any column header to sort by:
 - **Alias** - Alphabetically by org name
+- **URL** - By instance URL
 - **Status** - By connection status
-- **Last Used** - Most recently opened orgs first (default)
+- **Last Opened** - Most recently opened orgs first (default)
 
 ### 💾 Performance Optimized
 - **Smart caching** - Org list is cached for instant loading
 - **Manual refresh** - Click the refresh button to update from Salesforce CLI
 - **Fast logout** - Removes orgs from the list without full refresh
+- **Auto-activation** - Only activates when you're in a Salesforce project
 
 ### ℹ️ Detailed Org Info
 Click on any org alias to view a popover with:
 - Username
 - Org ID
 - Instance URL (clickable)
-- Org Type (Dev Hub, Sandbox, or Production)
+- Org Type (Dev Hub, Scratch Org, Sandbox, or Production)
 
-## Requirements
+### 🎨 Visual Indicators
+- **⚡ Lightning bolt** - Scratch orgs
+- **❗ Exclamation mark** - Production orgs (be careful!)
+- **Status badges** - Quickly see connection status
+- **Dropdown menus** - Access all actions with the ⋯ button
 
-- [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli) installed and configured
-- At least one authenticated Salesforce org
+## 📋 Requirements
 
-## Usage
+- **Salesforce CLI v2.105.0 or higher** - [Install or Update](https://developer.salesforce.com/tools/salesforcecli)
+- **VS Code v1.99.0 or higher**
+- A Salesforce project with `sfdx-project.json` (extension auto-activates)
 
-1. Open the Command Palette (`Cmd+Shift+P` on Mac, `Ctrl+Shift+P` on Windows/Linux)
-2. Run **"ORGanetto: Show my Salesforce Orgs"**
-3. Your orgs will appear in a new tab
+## 🚀 Usage
 
-### Keyboard Shortcuts
-- **Start typing** - Automatically focuses the search box
-- **Click column headers** - Sort by that column
-- **Click aliases** - View detailed org information
+### Opening ORGanetto
+1. Open a Salesforce project in VS Code
+2. Click the **🪗** icon in the status bar, OR
+3. Open Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`)
+4. Run **"ORGanetto: Show my Salesforce Orgs"**
 
-### Actions
+### Adding a New Org
+1. Open Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`)
+2. Run **"ORGanetto: Add Salesforce Org"**, OR
+3. Click the **"+ Add New Org"** button in the ORGanetto tab
+4. Follow the guided setup:
+   - Select org type (Org or DevHub)
+   - Choose instance (Production, Sandbox, or Custom)
+   - Enter an alias
+   - Authenticate in your browser
+
+### Quick Actions
 - **🚀 Open** - Opens the org in your default browser
-- **🚪 Logout** - Logs out from the org (with confirmation)
-- **🔄 Refresh** - Refreshes the org list from Salesforce CLI
+- **⋯ More Actions** (dropdown):
+  - **⭐ Set as Default** - Set this org as your workspace default
+  - **🔑 Get Auth URL** - Copy SFDX Auth URL to clipboard
+  - **🔐 Reauthenticate** - Reconnect a disconnected org
+  - **🚪 Logout** - Remove org from authenticated list
 
-## Tips
+### Keyboard Tips
+- **Start typing** - Search box auto-focuses for quick filtering
+- **Click column headers** - Sort by that column
+- **Click aliases** - View detailed org information in a popover
 
-- The org list is sorted by "Last Used" by default, so your frequently used orgs appear at the top
-- Use the search box to quickly find orgs in large lists
-- Hide disconnected orgs to declutter your view
-- The extension remembers when you last opened each org through ORGanetto
+## 💡 Tips & Tricks
 
-## Extension Settings
+- **Recently used first** - The list defaults to "Last Opened" sort, so your frequently used orgs are always at the top
+- **Quick find** - Use the search box to instantly filter large org lists
+- **Clean view** - Check "Hide disconnected orgs" to focus on active connections
+- **Share access** - Use "Get Auth URL" to securely share org access with team members or CI/CD pipelines
+- **Production safety** - Look for the ❗ icon to identify production orgs at a glance
+- **Scratch org tracking** - The ⚡ icon helps you quickly identify scratch orgs
 
-This extension doesn't require any configuration. Just install and use!
+## 🔧 Extension Settings
 
-## Known Issues
+This extension works out of the box! No configuration needed - just install and start managing your orgs.
 
-None yet! Please [report any issues](https://github.com/yourusername/organetto/issues) you encounter.
+## 📦 Activation
 
-## Release Notes
+ORGanetto automatically activates when you open a workspace containing `sfdx-project.json`. This keeps VS Code lightweight when you're working on non-Salesforce projects.
+
+## ⚠️ Known Issues
+
+None currently! If you encounter any issues, please [report them on GitHub](https://github.com/fracarma/organetto/issues).
+
+## 📝 Release Notes
+
+### 0.0.6
+
+Latest improvements:
+- Added guided "Add Org" flow with support for Production, Sandbox, and Custom instances
+- New dropdown menu with additional actions (Set Default, Get Auth URL, Reauthenticate)
+- Status bar item (🪗) for quick access
+- SF CLI version check (requires v2.105.0+)
+- Support for Dev Hub and Scratch orgs with visual indicators
+- Production org warning icon (❗) for safety
+- Improved popover with complete org type detection
+- Enhanced caching and performance optimizations
 
 ### 0.0.1
 
@@ -84,8 +134,10 @@ Initial release of ORGanetto:
 
 ---
 
-## About
+## 🎵 About
 
-ORGanetto (named after the small accordion instrument) helps you orchestrate your Salesforce orgs efficiently.
+**ORGanetto** is named after the organetto, a small accordion instrument. Just like an organetto brings harmony to music, this extension helps you orchestrate your Salesforce orgs with efficiency and style.
+
+Built with ❤️ for Salesforce admins and developers who appreciate good tooling.
 
 **Enjoy!** 🪗
