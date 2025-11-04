@@ -30,12 +30,8 @@ function setProdOrSandbox(org: any): void {
 }
 
 // This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-    // Use the console to output diagnostic information (console.log) and errors (console.error)
-    // This line of code will only be executed once when your extension is activated
-    logger.log('Congratulations, your extension "organetto" is now active!');
-
+    showStatusBarItem();
     // Check SF CLI version before doing anything
     checkSfCliVersion();
 
@@ -407,6 +403,19 @@ export function activate(context: vscode.ExtensionContext) {
             context.subscriptions,
         );
     });
+
+    /**
+     * Create and show a StatusBarItem
+     */
+    function showStatusBarItem() {
+        logger.log("Showing status bar item");
+        let sbItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1);
+        sbItem.text = "🪗";
+        sbItem.tooltip = "ORGanetto: Show my Salesforce Orgs";
+        sbItem.backgroundColor = new vscode.ThemeColor('statusBarItem.background');
+        sbItem.command = "organetto.openNewTab";
+        sbItem.show();
+    }
 
     // Helper function to check SF CLI version
     async function checkSfCliVersion(): Promise<boolean> {
