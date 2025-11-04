@@ -2,7 +2,7 @@
     "name": "organetto",
     "displayName": "ORGanetto",
     "description": "",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "repository": "https://github.com/fracarma/organetto",
     "engines": {
         "vscode": "^1.99.0"
