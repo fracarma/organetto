@@ -107,31 +107,6 @@ ORGanetto automatically activates when you open a workspace containing `sfdx-pro
 
 None currently! If you encounter any issues, please [report them on GitHub](https://github.com/fracarma/organetto/issues).
 
-## 📝 Release Notes
-
-### 0.0.6
-
-Latest improvements:
-- Added guided "Add Org" flow with support for Production, Sandbox, and Custom instances
-- New dropdown menu with additional actions (Set Default, Get Auth URL, Reauthenticate)
-- Status bar item (🪗) for quick access
-- SF CLI version check (requires v2.105.0+)
-- Support for Dev Hub and Scratch orgs with visual indicators
-- Production org warning icon (❗) for safety
-- Improved popover with complete org type detection
-- Enhanced caching and performance optimizations
-
-### 0.0.1
-
-Initial release of ORGanetto:
-- View all authenticated Salesforce orgs
-- Open orgs in browser
-- Logout from orgs
-- Search and filter orgs
-- Sortable table columns
-- Track last opened date
-- Smart caching for performance
-
 ---
 
 ## 🎵 About
