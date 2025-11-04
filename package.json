@@ -1,6 +1,7 @@
 {
     "name": "organetto",
     "displayName": "ORGanetto",
+    "publisher": "fracarma",
     "description": "",
     "version": "0.0.6",
     "icon": "media/accordeon.png",
