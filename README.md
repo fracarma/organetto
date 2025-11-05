@@ -4,6 +4,11 @@ A Visual Studio Code extension for managing your Salesforce orgs with style and 
 
 Click the 🪗 icon for instant access!
 
+![ORGanetto Screenshot](media/organetto_screenshot.png)
+
+[Install from Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=fracarma.organetto)
+[Install from Open VSX Registry](https://open-vsx.org/extension/fracarma/organetto)
+
 ## ✨ Features
 
 ### 🎯 Quick Org Management

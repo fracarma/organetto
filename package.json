@@ -3,8 +3,8 @@
     "displayName": "ORGanetto",
     "publisher": "fracarma",
     "description": "",
-    "version": "0.0.6",
-    "icon": "media/accordeon.png",
+    "version": "0.0.7",
+    "icon": "media/accordion.png",
     "repository": "https://github.com/fracarma/organetto",
     "engines": {
         "vscode": "^1.99.0"
