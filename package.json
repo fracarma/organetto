@@ -2,7 +2,16 @@
     "name": "organetto",
     "displayName": "ORGanetto: Salesforce Orgs Manager",
     "publisher": "fracarma",
-    "description": "",
+    "description": "Help you manage your sf cli orgs. Perfect for admins and developers juggling multiple Salesforce environments",
+    "keywords": [
+        "salesforce",
+        "sfdx",
+        "sf",
+        "orgs",
+        "sandbox",
+        "scratch",
+        "dev hub"
+    ],
     "version": "0.0.8",
     "icon": "media/accordion.png",
     "repository": "https://github.com/fracarma/organetto",
