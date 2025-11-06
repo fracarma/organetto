@@ -1,9 +1,9 @@
 {
     "name": "organetto",
-    "displayName": "ORGanetto",
+    "displayName": "ORGanetto: Salesforce Orgs Manager",
     "publisher": "fracarma",
     "description": "",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "icon": "media/accordion.png",
     "repository": "https://github.com/fracarma/organetto",
     "engines": {
