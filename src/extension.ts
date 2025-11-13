@@ -39,6 +39,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Check SF CLI version before doing anything
     checkSfCliVersion();
     globalContext.subscriptions.push(openNewTabDisposable, addOrgDisposable);
+    fetchAndCacheOrgs(true);
 }
 
 async function fetchAndCacheOrgs(forceRefresh: boolean = false): Promise<any[]> {
