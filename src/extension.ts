@@ -566,7 +566,7 @@ function getWebviewContent(
 
                             return `
                         <tr class="org-row" 
-                            data-connected="${org.connectedStatus === "Connected"}"
+                            data-connected="${org.connectedStatus === "Connected" || (org.isExpired === false)}"
                             data-alias="${(org.alias || org.username || "").toLowerCase()}"
                             data-status="${org.connectedStatus || ""}"
                             data-lastused="${lastOpenedTimes[orgKey] || ""}">
@@ -581,7 +581,7 @@ function getWebviewContent(
                                 </strong>
                             </td>
                             <td><a href="" onclick="openOrg('${org.alias || org.username}')">${org.instanceUrl || "-"}</a></td>
-                            <td><span class="badge ${org.connectedStatus || ""}">${org.connectedStatus || "-"}</span></td>
+                            <td><span class="badge ${org.connectedStatus || (!org.isExpired ? "Connected" : "Expired" ) || ""}">${org.connectedStatus || (!org.isExpired ? "Connected" : "Expired" ) || "-"}</span></td>
                             <td>${lastUsedText}</td>
                             <td>
                                 <div class="action-buttons">
