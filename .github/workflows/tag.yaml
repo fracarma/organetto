@@ -1,7 +1,7 @@
 on:
     push:
       tags:
-        - "*"
+        - "v*.*.*"
 
 jobs:
   publish:
@@ -24,3 +24,7 @@ jobs:
         pat: ${{ secrets.VS_MARKETPLACE_TOKEN }}
         registryUrl: https://marketplace.visualstudio.com
         extensionFile: ${{ steps.publishToOpenVSX.outputs.vsixPath }}
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: ${{ steps.publishToOpenVSX.outputs.vsixPath }}
