@@ -12,7 +12,7 @@
         "scratch",
         "dev hub"
     ],
-    "version": "0.0.8",
+    "version": "0.0.9",
     "icon": "media/accordion.png",
     "repository": "https://github.com/fracarma/organetto",
     "engines": {
