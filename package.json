@@ -46,7 +46,8 @@
         "format": "prettier --ignore-path .gitignore --write \"**/*.+(js|ts|json)\"",
         "test": "vscode-test",
         "check-types": "tsc --noEmit",
-        "package": "npm run check-types && node esbuild.js --production && vsce package"
+        "package": "npm run check-types && node esbuild.js --production && vsce package",
+        "release": "npm version patch && git push && git push origin --tags"
     },
     "devDependencies": {
         "@types/mocha": "^10.0.10",

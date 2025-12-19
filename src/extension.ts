@@ -32,6 +32,16 @@ function setProdOrSandbox(org: any): void {
     }
 }
 
+// Set connected status to "HTTP response contains html. Org does not exist or is not reachable" if it is HTML. I hate sf cli.
+function setConnectedStatus(org: any): void {
+    logger.log("Setting connected status for org:", org.connectedStatus);
+    var htmlRegex = new RegExp("<\\/?[a-z][\\s\\S]*>", "i");
+    if (htmlRegex.test(org.connectedStatus)) {
+        logger.log("Org connected status is HTML");
+        org.connectedStatus = "HTTP response contains html. Org does not exist or is not reachable";
+    }
+}
+
 // This method is called when your extension is activated
 export function activate(context: vscode.ExtensionContext) {
     globalContext = context;
@@ -86,6 +96,11 @@ async function fetchAndCacheOrgs(forceRefresh: boolean = false): Promise<any[]> 
 
         // Set ProdOrSandbox property for each org
         orgs.forEach((org) => setProdOrSandbox(org));
+
+        // Set connectedStatus to "HTTP response contains html. Org does not exist or is not reachable" if it is HTML
+        orgs.forEach((org) => {
+            setConnectedStatus(org);
+        });
 
         // Cache the results
         await globalContext.globalState.update("salesforceOrgs", orgs);
