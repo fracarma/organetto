@@ -556,7 +556,6 @@ function getWebviewContent(
                 <tbody id="orgs-table-body">
                     ${orgs
                         .map((org, index) => {
-                            // Format last opened date from tracked data
                             const orgKey = org.alias || org.username;
                             let lastUsedText = "Never";
                             if (lastOpenedTimes[orgKey]) {
@@ -566,7 +565,6 @@ function getWebviewContent(
                                 const diffMins = Math.floor(diffMs / 60000);
                                 const diffHours = Math.floor(diffMs / 3600000);
                                 const diffDays = Math.floor(diffMs / 86400000);
-
                                 if (diffMins < 1) {
                                     lastUsedText = "Just now";
                                 } else if (diffMins < 60) {
@@ -579,13 +577,15 @@ function getWebviewContent(
                                     lastUsedText = lastUsedDate.toLocaleDateString();
                                 }
                             }
-
                             return `
                         <tr class="org-row" 
                             data-connected="${org.connectedStatus === "Connected" || (org.isExpired === false)}"
                             data-alias="${(org.alias || org.username || "").toLowerCase()}"
-                            data-status="${org.connectedStatus || ""}"
-                            data-lastused="${lastOpenedTimes[orgKey] || ""}">
+                            data-url="${(org.instanceUrl || "").toLowerCase()}"
+                            data-status="${(org.connectedStatus || (!org.isExpired ? "Connected" : "Expired") || "").toLowerCase()}"
+                            data-prod="${(org.isScratch ? "scratch" : (org.ProdOrSandbox || "")).toLowerCase()}"
+                            data-lastused="${lastOpenedTimes[orgKey] || ""}"
+                            data-lastused-text="${lastUsedText.toLowerCase()}">
                             <td>
                                 <span class="org-type-icon" title="${org.isScratch ? "Scratch Org" : org.ProdOrSandbox === "Production" ? "Production" : ""}">
                                     ${org.isScratch ? "⚡" : org.ProdOrSandbox === "Production" ? "❗" : ""}
