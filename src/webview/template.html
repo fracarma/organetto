@@ -66,20 +66,34 @@
             }
         }
         
+        // Fuzzy match: needle characters must appear in haystack in order (not necessarily adjacent)
+        function fuzzyMatch(haystack, needle) {
+            if (!needle) return true;
+            haystack = (haystack || '').toLowerCase();
+            needle = needle.toLowerCase().replace(/\s+/g, '');
+            let i = 0;
+            for (const c of haystack) {
+                if (c === needle[i]) i++;
+                if (i === needle.length) return true;
+            }
+            return false;
+        }
+        
         function applyFilter() {
             const hideDisconnected = document.getElementById('hideDisconnected').checked;
-            const searchText = document.getElementById('searchInput').value.toLowerCase();
+            const searchText = (document.getElementById('searchInput').value || '').trim();
             const rows = document.querySelectorAll('.org-row');
             
             rows.forEach(row => {
                 const isConnected = row.getAttribute('data-connected') === 'true';
-                const alias = row.getAttribute('data-alias');
+                const alias = row.getAttribute('data-alias') || '';
+                const url = row.getAttribute('data-url') || '';
                 
-                // Check if should hide based on connection status
                 const hideByConnection = hideDisconnected && !isConnected;
-                
-                // Check if should hide based on search text
-                const hideBySearch = searchText && !alias.includes(searchText);
+                const matchesSearch = !searchText ||
+                    fuzzyMatch(alias, searchText) ||
+                    fuzzyMatch(url, searchText);
+                const hideBySearch = searchText && !matchesSearch;
                 
                 if (hideByConnection || hideBySearch) {
                     row.style.display = 'none';
@@ -109,6 +123,10 @@
                     case 'alias':
                         aVal = a.getAttribute('data-alias');
                         bVal = b.getAttribute('data-alias');
+                        break;
+                    case 'instanceUrl':
+                        aVal = a.getAttribute('data-url');
+                        bVal = b.getAttribute('data-url');
                         break;
                     case 'status':
                         aVal = a.getAttribute('data-status');
