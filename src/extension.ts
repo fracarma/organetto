@@ -133,6 +133,7 @@ const openNewTabDisposable = vscode.commands.registerCommand("organetto.openNewT
             retainContextWhenHidden: true, // Keep the webview content when hidden
         },
     );
+    panel.iconPath = vscode.Uri.joinPath(globalContext.extensionUri, "media", "accordion.png");
 
     // Store the panel reference
     currentPanel = panel;
