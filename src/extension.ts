@@ -397,7 +397,7 @@ const openNewTabDisposable = vscode.commands.registerCommand("organetto.openNewT
 
                                 // Execute the reauthentication command
                                 await execPromise(
-                                    `sf org login web --alias ${reauthAlias} --instance-url ${instanceUrl}`,
+                                    `sf org login web --alias "${reauthAlias}" --instance-url ${instanceUrl}`,
                                 );
 
                                 progress.report({ message: "Refreshing org list..." });
@@ -836,7 +836,7 @@ const addOrgDisposable = vscode.commands.registerCommand("organetto.addOrg", asy
     logger.log(`Alias: ${alias}`);
 
     // Build the command
-    const command = `sf org login web --alias ${alias} --instance-url ${instanceUrl}`;
+    const command = `sf org login web --alias "${alias}" --instance-url ${instanceUrl}`;
     logger.log(`Executing command: ${command}`);
 
     // Show progress notification
