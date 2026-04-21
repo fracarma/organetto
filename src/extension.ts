@@ -632,6 +632,10 @@ function getWebviewContent(
                             <span id="popover-username"></span>
                         </div>
                         <div class="popover-item">
+                            <span class="popover-label">Password:</span>
+                            <span id="popover-password"></span>
+                        </div>
+                        <div class="popover-item">
                             <span class="popover-label">Org ID:</span>
                             <code id="popover-orgid"></code>
                         </div>
@@ -663,6 +667,7 @@ function getWebviewContent(
                     document.getElementById('popover-orgid').textContent = org.orgId || '-';
                     document.getElementById('popover-url').textContent = org.instanceUrl || '-';
                     document.getElementById('popover-url').href = org.instanceUrl || '#';
+                    document.getElementById('popover-password').textContent = org.password || '-';
                     
                     // Determine org type
                     let orgType = '❔ Unknown';
