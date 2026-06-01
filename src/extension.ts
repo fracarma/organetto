@@ -558,7 +558,9 @@ function getWebviewContent(
                     ${orgs
                         .map((org, index) => {
                             const orgKey = org.alias || org.username;
-                            const statusText = org.connectedStatus || (!org.isExpired ? "Connected" : "Expired") || "-";
+                            const statusText =
+                                org.connectedStatus ||
+                                (org.isExpired === false ? "Connected" : org.isExpired === true ? "Expired" : "-");
                             const isConnected = statusText === "Connected";
                             let lastUsedText = "Never";
                             if (lastOpenedTimes[orgKey]) {
@@ -582,7 +584,7 @@ function getWebviewContent(
                             }
                             return `
                         <tr class="org-row" 
-                            data-connected="${isConnected || (org.isExpired === false)}"
+                            data-connected="${isConnected}"
                             data-alias="${(org.alias || org.username || "").toLowerCase()}"
                             data-url="${(org.instanceUrl || "").toLowerCase()}"
                             data-status="${statusText.toLowerCase()}"
