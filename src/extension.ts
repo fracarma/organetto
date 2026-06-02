@@ -542,7 +542,7 @@ function getWebviewContent(
                         <th class="sortable" onclick="sortTable('alias')">
                             Alias <span class="sort-indicator" id="sort-alias"></span>
                         </th>
-                        <th class="sortable" onclick="sortTable('instanceUrl')">
+                        <th class="sortable url-column" onclick="sortTable('instanceUrl')">
                             URL <span class="sort-indicator" id="sort-instanceUrl"></span>
                         </th>
                         <th class="sortable" onclick="sortTable('status')">
@@ -558,6 +558,8 @@ function getWebviewContent(
                     ${orgs
                         .map((org, index) => {
                             const orgKey = org.alias || org.username;
+                            const statusText = org.connectedStatus || (org.isExpired ? "Expired" : "Connected");
+                            const isConnected = statusText === "Connected";
                             let lastUsedText = "Never";
                             if (lastOpenedTimes[orgKey]) {
                                 const lastUsedDate = new Date(lastOpenedTimes[orgKey]);
@@ -580,10 +582,10 @@ function getWebviewContent(
                             }
                             return `
                         <tr class="org-row" 
-                            data-connected="${org.connectedStatus === "Connected" || (org.isExpired === false)}"
+                            data-connected="${isConnected}"
                             data-alias="${(org.alias || org.username || "").toLowerCase()}"
                             data-url="${(org.instanceUrl || "").toLowerCase()}"
-                            data-status="${(org.connectedStatus || (!org.isExpired ? "Connected" : "Expired") || "").toLowerCase()}"
+                            data-status="${statusText.toLowerCase()}"
                             data-prod="${(org.isScratch ? "scratch" : (org.ProdOrSandbox || "")).toLowerCase()}"
                             data-lastused="${lastOpenedTimes[orgKey] || ""}"
                             data-lastused-text="${lastUsedText.toLowerCase()}">
@@ -597,8 +599,15 @@ function getWebviewContent(
                                     ${org.alias || org.username || "-"} <span style="opacity: 0.6; font-size: 0.9em;">ℹ️</span>
                                 </strong>
                             </td>
-                            <td><a href="" onclick="openOrg('${org.alias || org.username}')">${org.instanceUrl || "-"}</a></td>
-                            <td><span class="badge ${org.connectedStatus || (!org.isExpired ? "Connected" : "Expired" ) || ""}">${org.connectedStatus || (!org.isExpired ? "Connected" : "Expired" ) || "-"}</span></td>
+                            <td class="url-column"><a href="" onclick="openOrg('${org.alias || org.username}')">${org.instanceUrl || "-"}</a></td>
+                            <td>
+                                <span class="badge ${statusText} status-text">${statusText}</span>
+                                <span
+                                    class="status-icon ${isConnected ? "status-icon-connected" : "status-icon-disconnected"}"
+                                    title="${statusText}"
+                                    aria-label="${statusText}"
+                                >${isConnected ? "✓" : "—"}</span>
+                            </td>
                             <td>${lastUsedText}</td>
                             <td>
                                 <div class="action-buttons">

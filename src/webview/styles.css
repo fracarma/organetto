@@ -86,6 +86,21 @@ code {
     color: #ff9800;
 }
 
+.status-icon {
+    display: none;
+    font-size: 0.85em;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.status-icon-connected {
+    color: #4caf50;
+}
+
+.status-icon-disconnected {
+    color: var(--vscode-descriptionForeground);
+}
+
 .org-alias {
     cursor: pointer;
     color: var(--vscode-textLink-foreground);
@@ -351,3 +366,16 @@ code {
     font-size: 1.2em;
 }
 
+@media (max-width: 768px) {
+    .url-column {
+        display: none;
+    }
+
+    .status-text {
+        display: none;
+    }
+
+    .status-icon {
+        display: inline;
+    }
+}
