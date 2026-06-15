@@ -529,32 +529,30 @@ function getWebviewContent(
                     <div class="search-box">
                         <input type="text" id="searchInput" placeholder="Search orgs..." oninput="applyFilter()">
                     </div>
+                    <div class="sort-control">
+                        <label for="sortSelect">Sort</label>
+                        <select id="sortSelect" onchange="onSortChange()">
+                            <option value="lastused" selected>Last Opened</option>
+                            <option value="alias">Alias</option>
+                            <option value="status">Status</option>
+                        </select>
+                        <button class="action-button sort-dir-button" id="sortDirBtn" onclick="toggleSortDir()" title="Toggle sort direction">▲</button>
+                    </div>
                     <label class="filter-checkbox">
                         <input type="checkbox" id="hideDisconnected" checked onchange="applyFilter()">
                         <span>Hide disconnected orgs</span>
                     </label>
                 </div>
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Prod</th>
-                        <th class="sortable" onclick="sortTable('alias')">
-                            Alias <span class="sort-indicator" id="sort-alias"></span>
-                        </th>
-                        <th class="sortable url-column" onclick="sortTable('instanceUrl')">
-                            URL <span class="sort-indicator" id="sort-instanceUrl"></span>
-                        </th>
-                        <th class="sortable" onclick="sortTable('status')">
-                            Status <span class="sort-indicator" id="sort-status"></span>
-                        </th>
-                        <th class="sortable" onclick="sortTable('lastused')">
-                            Last Opened <span class="sort-indicator" id="sort-lastused"></span>
-                        </th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="orgs-table-body">
+            <div class="orgs-header">
+                <span class="cell-prod">Prod</span>
+                <span class="cell-name">Alias</span>
+                <span class="cell-url">URL</span>
+                <span class="cell-status">Status</span>
+                <span class="cell-last">Last Opened</span>
+                <span class="cell-actions">Actions</span>
+            </div>
+            <div class="orgs-grid" id="orgs-grid">
                     ${orgs
                         .map((org, index) => {
                             const orgKey = org.alias || org.username;
@@ -580,8 +578,16 @@ function getWebviewContent(
                                     lastUsedText = lastUsedDate.toLocaleDateString();
                                 }
                             }
+                            const orgRef = org.alias || org.username;
+                            const displayName = org.alias || org.username || "-";
+                            const prodIcon = org.isScratch ? "⚡" : org.ProdOrSandbox === "Production" ? "❗" : "";
+                            const prodTitle = org.isScratch
+                                ? "Scratch Org"
+                                : org.ProdOrSandbox === "Production"
+                                  ? "Production"
+                                  : "";
                             return `
-                        <tr class="org-row" 
+                        <div class="org-tile org-row"
                             data-connected="${isConnected}"
                             data-alias="${(org.alias || org.username || "").toLowerCase()}"
                             data-url="${(org.instanceUrl || "").toLowerCase()}"
@@ -589,46 +595,40 @@ function getWebviewContent(
                             data-prod="${(org.isScratch ? "scratch" : (org.ProdOrSandbox || "")).toLowerCase()}"
                             data-lastused="${lastOpenedTimes[orgKey] || ""}"
                             data-lastused-text="${lastUsedText.toLowerCase()}">
-                            <td>
-                                <span class="org-type-icon" title="${org.isScratch ? "Scratch Org" : org.ProdOrSandbox === "Production" ? "Production" : ""}">
-                                    ${org.isScratch ? "⚡" : org.ProdOrSandbox === "Production" ? "❗" : ""}
-                                </span>
-                            </td>
-                            <td>
-                                <strong class="org-alias" data-org-index="${index}">
-                                    ${org.alias || org.username || "-"} <span style="opacity: 0.6; font-size: 0.9em;">ℹ️</span>
+                            <span class="cell-prod">
+                                ${prodIcon ? `<span class="org-type-icon" title="${prodTitle}">${prodIcon}</span>` : ""}
+                            </span>
+                            <span class="cell-name">
+                                <strong class="org-alias" data-org-index="${index}" title="${displayName}">
+                                    ${displayName} <span style="opacity: 0.6; font-size: 0.85em;">ℹ️</span>
                                 </strong>
-                            </td>
-                            <td class="url-column"><a href="" onclick="openOrg('${org.alias || org.username}')">${org.instanceUrl || "-"}</a></td>
-                            <td>
-                                <span class="badge ${statusText} status-text">${statusText}</span>
+                            </span>
+                            <span class="cell-url"><a href="" onclick="openOrg('${orgRef}')" title="${org.instanceUrl || ""}">${org.instanceUrl || "-"}</a></span>
+                            <span class="cell-status">
                                 <span
                                     class="status-icon ${isConnected ? "status-icon-connected" : "status-icon-disconnected"}"
                                     title="${statusText}"
                                     aria-label="${statusText}"
                                 >${isConnected ? "✓" : "—"}</span>
-                            </td>
-                            <td>${lastUsedText}</td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="action-button" onclick="openOrg('${org.alias || org.username}')">🚀 Open</button>
-                                    <div class="dropdown">
-                                        <button class="action-button dropdown-toggle" onclick="toggleDropdown(event, ${index})">⋯</button>
-                                        <div class="dropdown-menu" id="dropdown-${index}">
-                                            <button class="dropdown-item" onclick="setDefaultOrg('${org.alias || org.username}')">⭐ Set as Default</button>
-                                            <button class="dropdown-item" onclick="getAuthUrl('${org.alias || org.username}')">🔑 Get Auth URL</button>
-                                            <button class="dropdown-item" onclick="reauthenticateOrg('${org.alias || org.username}')">🔐 Reauthenticate</button>
-                                            <button class="dropdown-item logout-item" onclick="logoutOrg('${org.alias || org.username}')">🚪 Logout</button>
-                                        </div>
+                            </span>
+                            <span class="cell-last">🕒 ${lastUsedText}</span>
+                            <div class="cell-actions">
+                                <button class="action-button open-button" onclick="openOrg('${orgRef}')">🚀 Open</button>
+                                <div class="dropdown">
+                                    <button class="action-button dropdown-toggle" onclick="toggleDropdown(event, ${index})">⋯</button>
+                                    <div class="dropdown-menu" id="dropdown-${index}">
+                                        <button class="dropdown-item" onclick="setDefaultOrg('${orgRef}')">⭐ Set as Default</button>
+                                        <button class="dropdown-item" onclick="getAuthUrl('${orgRef}')">🔑 Get Auth URL</button>
+                                        <button class="dropdown-item" onclick="reauthenticateOrg('${orgRef}')">🔐 Reauthenticate</button>
+                                        <button class="dropdown-item logout-item" onclick="logoutOrg('${orgRef}')">🚪 Logout</button>
                                     </div>
                                 </div>
-                            </td>
-                        </tr>
+                            </div>
+                        </div>
                         `;
                         })
                         .join("")}
-                </tbody>
-            </table>
+            </div>
             <div id="popover" class="popover" style="display: none;">
                 <div class="popover-content">
                     <div class="popover-header">
@@ -655,6 +655,10 @@ function getWebviewContent(
                         <div class="popover-item">
                             <span class="popover-label">Type:</span>
                             <span id="popover-type"></span>
+                        </div>
+                        <div class="popover-item">
+                            <span class="popover-label">Status:</span>
+                            <span id="popover-status"></span>
                         </div>
                     </div>
                 </div>
@@ -688,7 +692,13 @@ function getWebviewContent(
                         orgType = '🧪 Sandbox';
                     }
                     document.getElementById('popover-type').textContent = orgType;
-                    
+
+                    // Connection status (full text from the SF CLI)
+                    const statusText = org.connectedStatus || (org.isExpired ? 'Expired' : 'Connected');
+                    const isConnected = statusText === 'Connected';
+                    document.getElementById('popover-status').textContent =
+                        (isConnected ? '✓ ' : '⚠️ ') + statusText;
+
                     // Show popover temporarily to get its height
                     popover.style.display = 'block';
                     popover.style.visibility = 'hidden';

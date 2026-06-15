@@ -13,42 +13,150 @@ h1 {
     margin-bottom: 20px;
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
+/* ===========================================================================
+   Org list layout.
+
+   Mobile-first: each org is a stacked CARD (grid-template-areas).
+   At wide widths (>= 768px) the same markup re-flows into table-like ROWS that
+   share one set of column tracks, so every row — and the header — stays aligned.
+   =========================================================================== */
+
+/* Column header row — only shown in the wide "rows" layout. */
+.orgs-header {
+    display: none;
 }
 
-th {
+.orgs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.org-tile {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+        "prod name status"
+        "url url url"
+        "last last last"
+        "actions actions actions";
+    gap: 8px;
+    align-items: center;
+    padding: 14px;
     background-color: var(--vscode-editor-inactiveSelectionBackground);
-    color: var(--vscode-foreground);
-    padding: 12px;
-    text-align: left;
-    font-weight: 600;
-    border-bottom: 2px solid var(--vscode-textLink-foreground);
+    border: 1px solid var(--vscode-widget-border);
+    border-radius: 8px;
+    transition:
+        border-color 0.15s ease,
+        background-color 0.15s ease;
 }
 
-th.sortable {
-    cursor: pointer;
-    user-select: none;
-}
-
-th.sortable:hover {
+.org-tile:hover {
     background-color: var(--vscode-list-hoverBackground);
+    border-color: var(--vscode-textLink-foreground);
 }
 
-.sort-indicator {
-    color: var(--vscode-textLink-foreground);
-    font-size: 0.8em;
+.cell-prod {
+    grid-area: prod;
 }
 
-td {
-    padding: 12px;
-    border-bottom: 1px solid var(--vscode-widget-border);
+.cell-name {
+    grid-area: name;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
 }
 
-tr:hover {
-    background-color: var(--vscode-list-hoverBackground);
+.cell-status {
+    grid-area: status;
+    justify-self: end;
+}
+
+.cell-url {
+    grid-area: url;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.cell-last {
+    grid-area: last;
+    white-space: nowrap;
+}
+
+/* Muted, smaller meta text — only inside org cards/rows, not the header. */
+.org-tile .cell-url,
+.org-tile .cell-last {
+    font-size: 0.85em;
+    color: var(--vscode-descriptionForeground);
+}
+
+.cell-actions {
+    grid-area: actions;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.open-button {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+}
+
+.open-button:hover {
+    background-color: var(--vscode-button-hoverBackground);
+}
+
+/* Wide layout: re-flow cards into aligned table-like rows. */
+@media (min-width: 768px) {
+    .orgs-grid {
+        display: block;
+        margin-top: 0;
+    }
+
+    .orgs-header,
+    .org-tile {
+        display: grid;
+        grid-template-columns: 32px minmax(120px, 1.5fr) minmax(160px, 2.5fr) 60px 120px 150px;
+        grid-template-areas: "prod name url status last actions";
+        gap: 12px;
+        align-items: center;
+    }
+
+    .orgs-header {
+        margin-top: 16px;
+        padding: 10px 14px;
+        font-weight: 600;
+        color: var(--vscode-foreground);
+        border-bottom: 2px solid var(--vscode-textLink-foreground);
+    }
+
+    .org-tile {
+        padding: 10px 14px;
+        border: none;
+        border-bottom: 1px solid var(--vscode-widget-border);
+        border-radius: 0;
+    }
+
+    .org-tile:hover {
+        border-color: transparent;
+        border-bottom-color: var(--vscode-widget-border);
+    }
+
+    .cell-status {
+        justify-self: start;
+    }
+
+    .cell-actions {
+        justify-self: end;
+    }
 }
 
 a {
@@ -87,10 +195,11 @@ code {
 }
 
 .status-icon {
-    display: none;
-    font-size: 0.85em;
+    display: inline;
+    font-size: 1em;
     font-weight: 700;
     line-height: 1;
+    flex-shrink: 0;
 }
 
 .status-icon-connected {
@@ -106,6 +215,10 @@ code {
     color: var(--vscode-textLink-foreground);
     text-decoration: underline;
     text-decoration-style: dotted;
+    font-size: 1.05em;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .org-alias:hover {
@@ -366,16 +479,34 @@ code {
     font-size: 1.2em;
 }
 
-@media (max-width: 768px) {
-    .url-column {
-        display: none;
-    }
+.sort-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
 
-    .status-text {
-        display: none;
-    }
+.sort-control label {
+    font-size: 14px;
+    color: var(--vscode-descriptionForeground);
+}
 
-    .status-icon {
-        display: inline;
-    }
+.sort-control select {
+    padding: 6px 8px;
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 4px;
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+}
+
+.sort-control select:focus {
+    border-color: var(--vscode-focusBorder);
+}
+
+.sort-dir-button {
+    padding: 6px 10px;
+    line-height: 1;
 }
