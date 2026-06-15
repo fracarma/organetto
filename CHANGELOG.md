@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.17] - 2026-06-15
+
+### Added
+
+- Connection status is now shown in the org details popover, including the full text reported by the SF CLI (e.g. `RefreshTokenAuthError`)
+- Sort control (dropdown + direction toggle) to sort orgs by Last Opened, Alias, or Status
+
+### Changed
+
+- Redesigned the org list as a responsive layout: stacked cards with actions below on narrow viewports, and aligned table-style rows on wide viewports. This replaces the previous approach of hiding the URL column and collapsing the status badge on small screens
+
+## [0.0.16] - 2026-06-02
+
+### Added
+
+- Project website (`website/index.html`)
+
 ## [0.0.15] - 2026-06-02
 
 ### Added

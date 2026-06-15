@@ -20,7 +20,7 @@
     {{CONTENT}}
     <script>
         const vscode = acquireVsCodeApi();
-        let currentSort = { column: null, ascending: true };
+        let currentSort = { column: 'lastused', ascending: true };
         
         function refreshOrgs() {
             vscode.postMessage({ command: 'refresh' });
@@ -103,30 +103,19 @@
             });
         }
         
-        function sortTable(column) {
-            const tbody = document.getElementById('orgs-table-body');
-            const rows = Array.from(tbody.getElementsByClassName('org-row'));
-            
-            // Toggle sort direction if clicking the same column
-            if (currentSort.column === column) {
-                currentSort.ascending = !currentSort.ascending;
-            } else {
-                currentSort.column = column;
-                currentSort.ascending = true;
-            }
-            
-            // Sort rows
-            rows.sort((a, b) => {
+        function sortOrgs() {
+            const grid = document.getElementById('orgs-grid');
+            if (!grid) return;
+            const tiles = Array.from(grid.getElementsByClassName('org-row'));
+            const column = currentSort.column;
+
+            tiles.sort((a, b) => {
                 let aVal, bVal;
-                
+
                 switch(column) {
                     case 'alias':
                         aVal = a.getAttribute('data-alias');
                         bVal = b.getAttribute('data-alias');
-                        break;
-                    case 'instanceUrl':
-                        aVal = a.getAttribute('data-url');
-                        bVal = b.getAttribute('data-url');
                         break;
                     case 'status':
                         aVal = a.getAttribute('data-status');
@@ -139,33 +128,34 @@
                         if (!aVal && !bVal) return 0;
                         if (!aVal) return 1;
                         if (!bVal) return -1;
-                        return currentSort.ascending ? 
-                            new Date(bVal) - new Date(aVal) : 
+                        return currentSort.ascending ?
+                            new Date(bVal) - new Date(aVal) :
                             new Date(aVal) - new Date(bVal);
                 }
-                
+
                 // String comparison for alias and status
-                if (column !== 'lastused') {
-                    if (aVal < bVal) return currentSort.ascending ? -1 : 1;
-                    if (aVal > bVal) return currentSort.ascending ? 1 : -1;
-                    return 0;
-                }
-                
+                if (aVal < bVal) return currentSort.ascending ? -1 : 1;
+                if (aVal > bVal) return currentSort.ascending ? 1 : -1;
                 return 0;
             });
-            
+
             // Reorder DOM elements
-            rows.forEach(row => tbody.appendChild(row));
-            
-            // Update sort indicators
-            document.querySelectorAll('.sort-indicator').forEach(el => el.textContent = '');
-            const indicator = document.getElementById('sort-' + column);
-            if (indicator) {
-                indicator.textContent = currentSort.ascending ? ' ▲' : ' ▼';
-            }
-            
+            tiles.forEach(tile => grid.appendChild(tile));
+
             // Reapply filter after sorting
             applyFilter();
+        }
+
+        function onSortChange() {
+            currentSort.column = document.getElementById('sortSelect').value;
+            sortOrgs();
+        }
+
+        function toggleSortDir() {
+            currentSort.ascending = !currentSort.ascending;
+            const btn = document.getElementById('sortDirBtn');
+            if (btn) btn.textContent = currentSort.ascending ? '▲' : '▼';
+            sortOrgs();
         }
         
         // Listen for messages from the extension
@@ -222,7 +212,7 @@
         // Apply filter and default sort on page load
         window.addEventListener('DOMContentLoaded', () => {
             // Sort by last used date by default (most recent first)
-            sortTable('lastused');
+            sortOrgs();
             applyFilter();
         });
     </script>
