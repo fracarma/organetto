@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.18] - 2026-11-24
+
+### Fixed
+
+- "Get Auth URL" returned `[REDACTED] Use 'sf org auth show-sfdx-auth-url' to view` on SF CLI 2.156.3+, where `sf org display --verbose` no longer exposes the SFDX Auth URL. The extension now uses `sf org auth show-sfdx-auth-url` and falls back to `sf org display` on older CLI versions
+
 ## [0.0.17] - 2026-06-15
 
 ### Added
