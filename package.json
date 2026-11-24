@@ -22,7 +22,7 @@
         "Other"
     ],
     "activationEvents": [
-        "workspaceContains:sfdx-project.json"
+        "onStartupFinished"
     ],
     "main": "./out/extension.js",
     "contributes": {

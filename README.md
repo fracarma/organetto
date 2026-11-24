@@ -39,7 +39,6 @@ Click any column header to sort by:
 - **Smart caching** - Org list is cached for instant loading
 - **Manual refresh** - Click the refresh button to update from Salesforce CLI
 - **Fast logout** - Removes orgs from the list without full refresh
-- **Auto-activation** - Only activates when you're in a Salesforce project
 
 ### ℹ️ Detailed Org Info
 Click on any org alias to view a popover with:
@@ -58,7 +57,6 @@ Click on any org alias to view a popover with:
 
 - **Salesforce CLI v2.105.0 or higher** - [Install or Update](https://developer.salesforce.com/tools/salesforcecli)
 - **VS Code v1.99.0 or higher**
-- A Salesforce project with `sfdx-project.json` (extension auto-activates)
 
 ## 🚀 Usage
 
@@ -103,10 +101,6 @@ Click on any org alias to view a popover with:
 ## 🔧 Extension Settings
 
 This extension works out of the box! No configuration needed - just install and start managing your orgs.
-
-## 📦 Activation
-
-ORGanetto automatically activates when you open a workspace containing `sfdx-project.json`. This keeps VS Code lightweight when you're working on non-Salesforce projects.
 
 ## ⚠️ Known Issues
 

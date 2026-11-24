@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.19] - 2026-11-24
+
+### Changed
+
+- ORGanetto now activates in every workspace, not only those containing `sfdx-project.json`. Your orgs are global to the SF CLI, so the extension no longer requires a Salesforce project
+
 ## [0.0.18] - 2026-11-24
 
 ### Fixed
