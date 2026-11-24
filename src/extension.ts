@@ -306,13 +306,7 @@ const openNewTabDisposable = vscode.commands.registerCommand("organetto.openNewT
                         },
                         async (progress) => {
                             try {
-                                const { stdout } = await execPromise(
-                                    `sf org display --target-org ${authAlias} --verbose --json`,
-                                );
-
-                                // Parse the JSON output
-                                const result = JSON.parse(stdout);
-                                const authUrl = result?.result?.sfdxAuthUrl;
+                                const authUrl = await getSfdxAuthUrl(authAlias);
 
                                 if (authUrl) {
                                     logger.log(`Successfully retrieved Auth URL for org: ${authAlias}`);
@@ -438,6 +432,31 @@ function showStatusBarItem() {
 }
 
 // Helper function to check SF CLI version
+/**
+ * Retrieves the SFDX Auth URL for an org.
+ *
+ * Since @salesforce/cli 2.156.3 (plugin-org 7.0.0), `sf org display --verbose` redacts the
+ * sfdxAuthUrl and the dedicated `sf org auth show-sfdx-auth-url` command must be used instead.
+ * Try the new command first and fall back to `org display` on older CLIs where it doesn't exist.
+ */
+async function getSfdxAuthUrl(alias: string): Promise<string | undefined> {
+    const isAuthUrl = (value: unknown): value is string => typeof value === "string" && value.startsWith("force://");
+
+    try {
+        const { stdout } = await execPromise(`sf org auth show-sfdx-auth-url --target-org ${alias} --json`);
+        const authUrl = JSON.parse(stdout)?.result?.sfdxAuthUrl;
+        if (isAuthUrl(authUrl)) {
+            return authUrl;
+        }
+    } catch (error) {
+        logger.log(`'sf org auth show-sfdx-auth-url' unavailable or failed, falling back to 'sf org display'`);
+    }
+
+    const { stdout } = await execPromise(`sf org display --target-org ${alias} --verbose --json`);
+    const authUrl = JSON.parse(stdout)?.result?.sfdxAuthUrl;
+    return isAuthUrl(authUrl) ? authUrl : undefined;
+}
+
 async function checkSfCliVersion(): Promise<boolean> {
     try {
         const { stdout } = await execPromise("sf --version");
