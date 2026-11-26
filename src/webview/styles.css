@@ -298,6 +298,20 @@ code {
     word-break: break-all;
 }
 
+#popover-password {
+    word-break: break-all;
+}
+
+.popover-reveal {
+    color: var(--vscode-textLink-foreground);
+    cursor: pointer;
+}
+
+.popover-reveal:hover {
+    color: var(--vscode-textLink-activeForeground);
+    text-decoration: underline;
+}
+
 .refresh-button {
     background-color: var(--vscode-button-background);
     color: var(--vscode-button-foreground);

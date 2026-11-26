@@ -38,6 +38,10 @@
             vscode.postMessage({ command: 'logoutOrg', alias: alias });
         }
         
+        function getUserPassword(alias) {
+            vscode.postMessage({ command: 'getUserPassword', alias: alias });
+        }
+
         function getAuthUrl(alias) {
             vscode.postMessage({ command: 'getAuthUrl', alias: alias });
         }
@@ -173,6 +177,17 @@
                         }
                     });
                     break;
+                case 'userPassword': {
+                    // Only update if the popover is still showing the same org
+                    const passwordEl = document.getElementById('popover-password');
+                    if (passwordEl && passwordEl.dataset.alias === message.alias) {
+                        passwordEl.textContent = message.password;
+                        passwordEl.classList.remove('popover-reveal');
+                        passwordEl.onclick = null;
+                        passwordEl.title = 'Copied to clipboard';
+                    }
+                    break;
+                }
             }
         });
         

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.20] - 2026-11-26
+
+### Fixed
+
+- The org details popover showed `[REDACTED] Use 'sf org auth show-user-password' to view` as the password on SF CLI 2.156.3+. The Password field is now a "Click to reveal" link that runs `sf org auth show-user-password`, shows the password in the popover and copies it to the clipboard
+
 ## [0.0.19] - 2026-11-24
 
 ### Changed

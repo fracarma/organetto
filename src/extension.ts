@@ -335,6 +335,43 @@ const openNewTabDisposable = vscode.commands.registerCommand("organetto.openNewT
                         },
                     );
                     break;
+                case "getUserPassword":
+                    const passwordAlias = message.alias;
+                    logger.log(`Retrieving user password for org: ${passwordAlias}`);
+                    await vscode.window.withProgress(
+                        {
+                            location: vscode.ProgressLocation.Notification,
+                            title: `Retrieving password for org: ${passwordAlias}`,
+                            cancellable: false,
+                        },
+                        async () => {
+                            try {
+                                const password = await getUserPassword(passwordAlias);
+
+                                if (password) {
+                                    logger.log(`Successfully retrieved password for org: ${passwordAlias}`);
+                                    await vscode.env.clipboard.writeText(password);
+                                    panel.webview.postMessage({
+                                        command: "userPassword",
+                                        alias: passwordAlias,
+                                        password,
+                                    });
+                                    vscode.window.showInformationMessage(
+                                        `Password for ${passwordAlias} copied to clipboard`,
+                                    );
+                                } else {
+                                    logger.warn(`Password not found in response for org: ${passwordAlias}`);
+                                    vscode.window.showErrorMessage(
+                                        `No stored password found for org ${passwordAlias}`,
+                                    );
+                                }
+                            } catch (error) {
+                                logger.error(`Error retrieving password for org ${passwordAlias}:`, error);
+                                vscode.window.showErrorMessage(`Failed to get password: ${error}`);
+                            }
+                        },
+                    );
+                    break;
                 case "setDefaultOrg":
                     const defaultAlias = message.alias;
                     logger.log(`Setting default org to: ${defaultAlias}`);
@@ -455,6 +492,18 @@ async function getSfdxAuthUrl(alias: string): Promise<string | undefined> {
     const { stdout } = await execPromise(`sf org display --target-org ${alias} --verbose --json`);
     const authUrl = JSON.parse(stdout)?.result?.sfdxAuthUrl;
     return isAuthUrl(authUrl) ? authUrl : undefined;
+}
+
+/**
+ * Retrieves the stored password for an org's user.
+ *
+ * Since @salesforce/cli 2.156.3, `sf org list` / `sf org display` redact the password and
+ * `sf org auth show-user-password` must be used instead. `--json` skips the confirmation prompt.
+ */
+async function getUserPassword(alias: string): Promise<string | undefined> {
+    const { stdout } = await execPromise(`sf org auth show-user-password --target-org ${alias} --json`);
+    const password = JSON.parse(stdout)?.result?.password;
+    return typeof password === "string" && password.length > 0 ? password : undefined;
 }
 
 async function checkSfCliVersion(): Promise<boolean> {
@@ -699,7 +748,20 @@ function getWebviewContent(
                     document.getElementById('popover-orgid').textContent = org.orgId || '-';
                     document.getElementById('popover-url').textContent = org.instanceUrl || '-';
                     document.getElementById('popover-url').href = org.instanceUrl || '#';
-                    document.getElementById('popover-password').textContent = org.password || '-';
+                    // Newer SF CLIs redact the password; let the user reveal it on demand
+                    const passwordEl = document.getElementById('popover-password');
+                    passwordEl.dataset.alias = org.alias || org.username || '';
+                    passwordEl.onclick = null;
+                    passwordEl.classList.remove('popover-reveal');
+                    passwordEl.removeAttribute('title');
+                    if (typeof org.password === 'string' && org.password.startsWith('[REDACTED]')) {
+                        passwordEl.textContent = '🔑 Click to reveal';
+                        passwordEl.classList.add('popover-reveal');
+                        passwordEl.title = "Runs 'sf org auth show-user-password' and copies the password to the clipboard";
+                        passwordEl.onclick = () => getUserPassword(passwordEl.dataset.alias);
+                    } else {
+                        passwordEl.textContent = org.password || '-';
+                    }
                     
                     // Determine org type
                     let orgType = '❔ Unknown';
